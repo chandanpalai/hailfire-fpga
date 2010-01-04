@@ -11,7 +11,7 @@ def ClkGen(clk):
     @always(delay(1)) # each delay unit simulates 0.02 us (half-period)
     def genClk():
         clk.next = not clk
-    return genClk;
+    return genClk
 
 def TestBench(MotorTester):
     """ Instanciate modules and wire things up.
@@ -32,7 +32,7 @@ def TestBench(MotorTester):
         pwm, dir, en_n, clk, consign, cs_n, rst_n)
     MotorTester_inst = MotorTester(
         pwm, dir, en_n, clk, consign, cs_n, rst_n)
-    ClkGen_inst = ClkGen(clk);
+    ClkGen_inst = ClkGen(clk)
 
     return MotorDriver_inst, MotorTester_inst, ClkGen_inst
 
@@ -46,8 +46,8 @@ class TestMotorDriver(unittest.TestCase):
             consign.next = val
 
             # read consign
-            cs_n.next = LOW;
-            yield delay(1);
+            cs_n.next = LOW
+            yield delay(1)
             cs_n.next = HIGH
 
         """ Test MotorDriver """

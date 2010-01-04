@@ -11,7 +11,7 @@ def ClkGen(clk):
     @always(delay(1)) # each delay unit simulates 0.02 us (half-period)
     def genClk():
         clk.next = not clk
-    return genClk;
+    return genClk
 
 def TestBench(ServoTester):
     """ Instanciate modules and wire things up.
@@ -30,7 +30,7 @@ def TestBench(ServoTester):
         pwm, clk, consign, cs_n, rst_n)
     ServoTester_inst = ServoTester(
         pwm, clk, consign, cs_n, rst_n)
-    ClkGen_inst = ClkGen(clk);
+    ClkGen_inst = ClkGen(clk)
 
     return ServoDriver_inst, ServoTester_inst, ClkGen_inst
 
@@ -41,8 +41,8 @@ class TestServoDriver(unittest.TestCase):
             consign.next = 37500
 
             # read consign
-            cs_n.next = LOW;
-            yield delay(1);
+            cs_n.next = LOW
+            yield delay(1)
             cs_n.next = HIGH
 
         """ Test ServoDriver """

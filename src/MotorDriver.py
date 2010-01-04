@@ -26,7 +26,7 @@ def MotorDriver(pwm, dir, en_n, clk25, consign, cs_n, rst_n):
     cnt = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
 
     # duty cycle is a 10-bit integer
-    dcl = Signal(intbv(0)[10:]);
+    dcl = Signal(intbv(0)[10:])
 
     @always(clk25.posedge, rst_n.negedge, cs_n.negedge)
     def driveMotor():

@@ -35,7 +35,7 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
     cnt = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
 
     # duty cycle is a 16-bit integer
-    dcl = Signal(intbv(0)[16:]);
+    dcl = Signal(intbv(0)[16:])
 
     @always(clk25.posedge, rst_n.negedge, cs_n.negedge)
     def driveServo():
