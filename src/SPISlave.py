@@ -3,9 +3,6 @@ from myhdl import Signal, intbv, instance
 ACTIVE_n, INACTIVE_n = bool(0), bool(1)
 IDLE, TRANSFER = bool(0), bool(1)
 
-def toggle(sig):
-    sig.next = not sig
-
 def SPISlave(miso, mosi, sclk, ss_n, txdata, txrdy, rxdata, rxrdy, rst_n, n=8):
     """ SPI Slave model.
 
@@ -34,7 +31,7 @@ def SPISlave(miso, mosi, sclk, ss_n, txdata, txrdy, rxdata, rxrdy, rst_n, n=8):
                 sreg[0] = mosi
                 if cnt == n-1:
                     rxdata.next = sreg
-                    toggle(rxrdy)
+                    rxrdy.next = not rxrdy
 
     @instance
     def TX():
@@ -49,7 +46,7 @@ def SPISlave(miso, mosi, sclk, ss_n, txdata, txrdy, rxdata, rxrdy, rst_n, n=8):
                 if state == IDLE:
                     if ss_n == ACTIVE_n:
                         sreg[:] = txdata
-                        toggle(txrdy)
+                        txrdy.next = not txrdy
                         state = TRANSFER
                         cnt.next = 0
                 else: # TRANSFER
