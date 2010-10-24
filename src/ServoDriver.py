@@ -13,15 +13,16 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
     following duty cycle values are the only ones really useful:
      * 0 ms: servo motor is disabled
      * approximately 1.5 ms: servo motor is at 0 deg
-     * approximately 0.5 ms: servo motor is at full right (or left)
-     * approximately 2.5 ms: servo motor is at full left (or right)
+     * approximately 0.5 ms: servo motor is at full right (or left?)
+     * approximately 2.5 ms: servo motor is at full left (or right?)
      * all values between 0.5 ms and 2.5 ms.
 
     In particular, all values beyond 2.5 ms are useless and only induce
     jitter on the servo position. A clock cycle being 0.04 us, 2.5 ms is
     62500 clock cycles. This mean that the useful duty cycle values can
     all be reached with the fullest precision possible with a 16-bit duty
-    cycle consign.
+    cycle consign (0 to 65535, with values from 1 to 12500 and from 62500
+    to 65535 being useless).
 
     pwm -- output signal
     clk25 -- 25 MHz clock input
