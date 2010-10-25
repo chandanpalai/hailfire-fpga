@@ -8,7 +8,7 @@ test:
 	python test_SPISlave.py
 
 clean:
-	rm -f *.vcd
+	rm -f *.vcd*
 	rm -f *.pyc
 
 realclean: clean
