@@ -10,8 +10,10 @@ clean:
 	rm -f *.rpt
 	rm -f *.summary
 	rm -f undo_redo.txt
+	rm -rf db
+	rm -rf incremental_db
 
 realclean: clean
 	make -C src realclean
-	rm -rf db
-	rm -rf incremental_db
+	rm -f *.pof
+	rm -f *.sof
