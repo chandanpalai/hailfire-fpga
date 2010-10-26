@@ -4,7 +4,7 @@ LOW, HIGH = bool(0), bool(1)
 
 CLK_DIVIDER = 500000
 
-def ServoDriver(pwm, clk25, consign, rst_n):
+def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
     """ PWM signal generator for servo motors
 
     Uses a 25 MHz clock to generate a PWM suitable for servo motors.
@@ -27,6 +27,7 @@ def ServoDriver(pwm, clk25, consign, rst_n):
     pwm -- output signal
     clk25 -- 25 MHz clock input
     consign -- 16-bit consign value in clock ticks
+    cs_n -- active low chip select (consign is read when active)
     rst_n -- active low reset input (pwm is reset when active)
 
     """
@@ -34,21 +35,31 @@ def ServoDriver(pwm, clk25, consign, rst_n):
     # count to 500000 to generate a 50 Hz PWM: 25000000/500000 = 50
     cnt = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
 
-    @always(clk25.posedge, rst_n.negedge)
+    # duty cycle is a 16-bit integer
+    dcl = Signal(intbv(0)[16:])
+
+    @always(clk25.posedge, rst_n.negedge, cs_n.negedge)
     def driveServo():
         """ Drive PWM output signal
 
         Reset consign when rst_n is active.
+        Read consign when cs_n is active.
         Generate output signal on clock events.
 
         """
         if rst_n == LOW:
-            pwm.next = LOW
+            dcl.next = 0
+        elif cs_n == LOW:
+            dcl.next = consign
         else:
-            if cnt < consign[16:]:
+            if cnt < dcl:
                 pwm.next = HIGH
             else:
                 pwm.next = LOW
-            cnt.next = (cnt + 1) % CLK_DIVIDER
+            # could use modulo but brings in a megawizard function
+            if cnt < CLK_DIVIDER - 1:
+                cnt.next = cnt + 1
+            else:
+                cnt.next = 0
 
     return driveServo

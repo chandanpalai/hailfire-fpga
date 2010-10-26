@@ -19,16 +19,17 @@ def TestBench(ServoTester):
     """
 
     # create signals with default values
-    pwm = Signal(bool(0))
+    pwm = Signal(LOW)
     clk = Signal(bool(0))
     consign = Signal(intbv(0)[16:])
+    cs_n = Signal(HIGH)
     rst_n = Signal(HIGH)
 
     # instanciate modules
     ServoDriver_inst = traceSignals(ServoDriver,
-        pwm, clk, consign, rst_n)
+        pwm, clk, consign, cs_n, rst_n)
     ServoTester_inst = ServoTester(
-        pwm, clk, consign, rst_n)
+        pwm, clk, consign, cs_n, rst_n)
     ClkGen_inst = ClkGen(clk)
 
     return ServoDriver_inst, ServoTester_inst, ClkGen_inst
@@ -36,9 +37,13 @@ def TestBench(ServoTester):
 class TestServoDriver(unittest.TestCase):
 
     def testServoDriver(self):
-        def ServoTester(pwm, clk, consign, rst_n):
+        def ServoTester(pwm, clk, consign, cs_n, rst_n):
             consign.next = 37500
+
+            # read consign
+            cs_n.next = LOW
             yield delay(1)
+            cs_n.next = HIGH
 
         """ Test ServoDriver """
         sim = Simulation(TestBench(ServoTester))

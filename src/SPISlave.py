@@ -53,7 +53,11 @@ def SPISlave(miso, mosi, sclk, ss_n, txdata, txrdy, rxdata, rxrdy, rst_n, n=8):
                     sreg[n:1] = sreg[n-1:]
                     if cnt == n-2:
                         state = IDLE
-                    cnt.next = (cnt + 1) % n
+                    # could use modulo but brings in a megawizard function
+                    if cnt < n - 1:
+                        cnt.next = cnt + 1
+                    else:
+                        cnt.next = 0
                 miso.next = sreg[n-1]
 
     return RX, TX

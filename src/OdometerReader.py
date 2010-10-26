@@ -34,9 +34,17 @@ def OdometerReader(count, a, b, clk25, rst_n):
         else:
             if a ^ previous_a ^ b ^ previous_b == 1: # it moved
                 if a ^ previous_b == 1: # which direction
-                    int_count.next = (int_count + 1) % MAX_COUNT
+                    # could use modulo but brings in a megawizard function
+                    if int_count < MAX_COUNT - 1:
+                        int_count.next = int_count + 1
+                    else:
+                        int_count.next = 0
                 else:
-                    int_count.next = (int_count - 1) % MAX_COUNT
+                    # could use modulo but brings in a megawizard function
+                    if int_count > 1:
+                        int_count.next = int_count - 1
+                    else:
+                        int_count.next = MAX_COUNT - 1
             previous_a.next = a
             previous_b.next = b
 

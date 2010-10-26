@@ -24,13 +24,14 @@ def TestBench(MotorTester):
     en_n = Signal(HIGH)
     clk = Signal(bool(0))
     consign = Signal(intbv(0)[12:])
+    cs_n = Signal(HIGH)
     rst_n = Signal(HIGH)
 
     # instanciate modules
     MotorDriver_inst = traceSignals(MotorDriver,
-        pwm, dir, en_n, clk, consign, rst_n)
+        pwm, dir, en_n, clk, consign, cs_n, rst_n)
     MotorTester_inst = MotorTester(
-        pwm, dir, en_n, clk, consign, rst_n)
+        pwm, dir, en_n, clk, consign, cs_n, rst_n)
     ClkGen_inst = ClkGen(clk)
 
     return MotorDriver_inst, MotorTester_inst, ClkGen_inst
@@ -38,12 +39,16 @@ def TestBench(MotorTester):
 class TestMotorDriver(unittest.TestCase):
 
     def testMotorDriver(self):
-        def MotorTester(pwm, dir, en_n, clk, consign, rst_n):
+        def MotorTester(pwm, dir, en_n, clk, consign, cs_n, rst_n):
             val = intbv(128)[12:] # 1/8 max speed
             val[10] = HIGH       # whatever
             val[11] = LOW        # enable
             consign.next = val
+
+            # read consign
+            cs_n.next = LOW
             yield delay(1)
+            cs_n.next = HIGH
 
         """ Test MotorDriver """
         sim = Simulation(TestBench(MotorTester))
