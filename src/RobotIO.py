@@ -1,4 +1,4 @@
-from myhdl import Signal, intbv, instances
+from myhdl import Signal, intbv, always, always_comb, instances
 from OdometerReader import OdometerReader
 from MotorDriver import MotorDriver
 from ServoDriver import ServoDriver
@@ -65,60 +65,107 @@ def RobotIO(
     # chip-wide active low reset signal
     rst_n = Signal(HIGH)
 
-    # chip select signals
-    # TODO: assert chip select on address sent by Gumstix
-    cs_1 = Signal(HIGH)
-    cs_2 = Signal(HIGH)
-    cs_3 = Signal(HIGH)
-    cs_4 = Signal(HIGH)
-    cs_5 = Signal(HIGH)
-    cs_6 = Signal(HIGH)
-    cs_7 = Signal(HIGH)
-    cs_8 = Signal(HIGH)
-    cs_9 = Signal(HIGH)
-    cs_10 = Signal(HIGH)
-    cs_11 = Signal(HIGH)
-    cs_12 = Signal(HIGH)
-    cs_13 = Signal(HIGH)
-    cs_14 = Signal(HIGH)
-    cs_15 = Signal(HIGH)
-    cs_16 = Signal(HIGH)
-
     # Gumstix SPI
     GumstixSPI = SPISlave(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, gs_txdata, gs_txrdy, gs_rxdata, gs_rxrdy, rst_n, 16);
 
     # Odometers
     rc1_count = Signal(intbv(0)[16:])
-    Odometer1_inst = OdometerReader(rc1_count, rc1_cha, rc1_chb, clk25, rst_n)
     rc2_count = Signal(intbv(0)[16:])
-    Odometer2_inst = OdometerReader(rc2_count, rc2_cha, rc2_chb, clk25, rst_n)
     rc3_count = Signal(intbv(0)[16:])
-    Odometer3_inst = OdometerReader(rc3_count, rc3_cha, rc3_chb, clk25, rst_n)
     rc4_count = Signal(intbv(0)[16:])
+    Odometer1_inst = OdometerReader(rc1_count, rc1_cha, rc1_chb, clk25, rst_n)
+    Odometer2_inst = OdometerReader(rc2_count, rc2_cha, rc2_chb, clk25, rst_n)
+    Odometer3_inst = OdometerReader(rc3_count, rc3_cha, rc3_chb, clk25, rst_n)
     Odometer4_inst = OdometerReader(rc4_count, rc4_cha, rc4_chb, clk25, rst_n)
 
     # DC Motors
     # FIXME: lines should be inverted because of opto-isolators
-    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, gs_rxdata, cs_1, rst_n)
-    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, gs_rxdata, cs_2, rst_n)
-    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, gs_rxdata, cs_3, rst_n)
-    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, gs_rxdata, cs_4, rst_n)
-    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, gs_rxdata, cs_5, rst_n)
-    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, gs_rxdata, cs_6, rst_n)
-    Motor7_inst = MotorDriver(mot7_pwm, mot7_dir, mot7_brake, clk25, gs_rxdata, cs_7, rst_n)
-    Motor8_inst = MotorDriver(mot8_pwm, mot8_dir, mot8_brake, clk25, gs_rxdata, cs_8, rst_n)
+    consign_motor_1 = Signal(intbv(0)[12:])
+    consign_motor_2 = Signal(intbv(0)[12:])
+    consign_motor_3 = Signal(intbv(0)[12:])
+    consign_motor_4 = Signal(intbv(0)[12:])
+    consign_motor_5 = Signal(intbv(0)[12:])
+    consign_motor_6 = Signal(intbv(0)[12:])
+    consign_motor_7 = Signal(intbv(0)[12:])
+    consign_motor_8 = Signal(intbv(0)[12:])
+    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, consign_motor_1, rst_n)
+    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, consign_motor_2, rst_n)
+    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, consign_motor_3, rst_n)
+    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, consign_motor_4, rst_n)
+    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, consign_motor_5, rst_n)
+    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, consign_motor_6, rst_n)
+    Motor7_inst = MotorDriver(mot7_pwm, mot7_dir, mot7_brake, clk25, consign_motor_7, rst_n)
+    Motor8_inst = MotorDriver(mot8_pwm, mot8_dir, mot8_brake, clk25, consign_motor_8, rst_n)
 
     # TODO: ADC SPI
 
     # Servo motors
     # FIXME: lines should be inverted because of opto-isolators
-    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, gs_rxdata, cs_9, rst_n)
-    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, gs_rxdata, cs_10, rst_n)
-    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, gs_rxdata, cs_11, rst_n)
-    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, gs_rxdata, cs_12, rst_n)
-    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, gs_rxdata, cs_13, rst_n)
-    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, gs_rxdata, cs_14, rst_n)
-    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, gs_rxdata, cs_15, rst_n)
-    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, gs_rxdata, cs_16, rst_n)
+    consign_servo_1 = Signal(intbv(0)[16:])
+    consign_servo_2 = Signal(intbv(0)[16:])
+    consign_servo_3 = Signal(intbv(0)[16:])
+    consign_servo_4 = Signal(intbv(0)[16:])
+    consign_servo_5 = Signal(intbv(0)[16:])
+    consign_servo_6 = Signal(intbv(0)[16:])
+    consign_servo_7 = Signal(intbv(0)[16:])
+    consign_servo_8 = Signal(intbv(0)[16:])
+    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, consign_servo_1, rst_n)
+    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, consign_servo_2, rst_n)
+    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, consign_servo_3, rst_n)
+    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, consign_servo_4, rst_n)
+    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, consign_servo_5, rst_n)
+    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, consign_servo_6, rst_n)
+    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, consign_servo_7, rst_n)
+    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, consign_servo_8, rst_n)
+
+    @always_comb
+    def GumstixRead():
+        if gs_rxdata == 31:
+            gs_txdata.next = rc1_count
+        elif gs_rxdata == 32:
+            gs_txdata.next = rc2_count
+        elif gs_rxdata == 33:
+            gs_txdata.next = rc3_count
+        elif gs_rxdata == 34:
+            gs_txdata.next = rc4_count
+        else:
+            gs_txdata.next = 0
+
+    @always_comb
+    def GumstixWrite():
+        if gs_rxdata == 1:
+            rst_n.next = LOW
+        elif gs_rxdata == 11:
+            consign_motor_1.next = gs_rxdata
+        elif gs_rxdata == 12:
+            consign_motor_2.next = gs_rxdata
+        elif gs_rxdata == 13:
+            consign_motor_3.next = gs_rxdata
+        elif gs_rxdata == 14:
+            consign_motor_4.next = gs_rxdata
+        elif gs_rxdata == 15:
+            consign_motor_5.next = gs_rxdata
+        elif gs_rxdata == 16:
+            consign_motor_6.next = gs_rxdata
+        elif gs_rxdata == 17:
+            consign_motor_7.next = gs_rxdata
+        elif gs_rxdata == 18:
+            consign_motor_8.next = gs_rxdata
+        elif gs_rxdata == 21:
+            consign_servo_1.next = gs_rxdata
+        elif gs_rxdata == 22:
+            consign_servo_2.next = gs_rxdata
+        elif gs_rxdata == 23:
+            consign_servo_3.next = gs_rxdata
+        elif gs_rxdata == 24:
+            consign_servo_4.next = gs_rxdata
+        elif gs_rxdata == 25:
+            consign_servo_5.next = gs_rxdata
+        elif gs_rxdata == 26:
+            consign_servo_6.next = gs_rxdata
+        elif gs_rxdata == 27:
+            consign_servo_7.next = gs_rxdata
+        elif gs_rxdata == 28:
+            consign_servo_8.next = gs_rxdata
 
     return instances()
