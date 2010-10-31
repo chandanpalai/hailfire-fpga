@@ -1,4 +1,4 @@
-from myhdl import Signal, intbv, always, always_comb
+from myhdl import Signal, intbv, always_comb, instance, instances
 
 LOW, HIGH = bool(0), bool(1)
 
@@ -20,37 +20,37 @@ def OdometerReader(count, a, b, clk25, rst_n):
 
     """
 
-    int_count  = Signal(intbv(0)[16:]) # so that count can be read and set
-    previous_a = Signal(LOW)
-    previous_b = Signal(LOW)
+    int_count = Signal(intbv(0)[len(count):]) # so that count can be read and set
 
-    @always(clk25.posedge, rst_n.negedge)
-    def readOdometer():
+    @instance
+    def HandleOdometer():
         """ Read quadrature encoder's channels and keep internal count """
-        if rst_n == LOW:
-            int_count.next = 0
-            previous_a.next = a
-            previous_b.next = b
-        else:
-            if a ^ previous_a ^ b ^ previous_b == 1: # it moved
-                if a ^ previous_b == 1: # which direction
-                    # could use modulo but brings in a megawizard function
-                    if int_count < MAX_COUNT - 1:
-                        int_count.next = int_count + 1
+        previous_a = LOW
+        previous_b = LOW
+        while True:
+            yield clk25.posedge, rst_n.negedge
+            if rst_n == LOW:
+                int_count.next = 0
+            else:
+                if a ^ previous_a ^ b ^ previous_b == 1: # it moved
+                    if a ^ previous_b == 1: # forward
+                        # could use modulo but brings in a megawizard function
+                        if int_count == MAX_COUNT - 1:
+                            int_count.next = 0
+                        else:
+                            int_count.next = int_count + 1
                     else:
-                        int_count.next = 0
-                else:
-                    # could use modulo but brings in a megawizard function
-                    if int_count > 1:
-                        int_count.next = int_count - 1
-                    else:
-                        int_count.next = MAX_COUNT - 1
-            previous_a.next = a
-            previous_b.next = b
+                        # could use modulo but brings in a megawizard function
+                        if int_count == 0:
+                            int_count.next = MAX_COUNT - 1
+                        else:
+                            int_count.next = int_count - 1
+                previous_a = a.val
+                previous_b = b.val
 
     @always_comb
-    def driveOutput():
+    def DriveCount():
         """ Copies the internal count to the count output """
         count.next = int_count
 
-    return readOdometer, driveOutput
+    return instances()

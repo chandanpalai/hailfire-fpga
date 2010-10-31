@@ -1,4 +1,4 @@
-from myhdl import Signal, intbv, always
+from myhdl import Signal, intbv, always, instances
 
 LOW, HIGH = bool(0), bool(1)
 
@@ -38,28 +38,28 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
     # duty cycle is a 16-bit integer
     dcl = Signal(intbv(0)[16:])
 
-    @always(clk25.posedge, rst_n.negedge, cs_n.negedge)
-    def driveServo():
-        """ Drive PWM output signal
-
-        Reset consign when rst_n is active.
-        Read consign when cs_n is active.
-        Generate output signal on clock events.
-
-        """
+    @always(rst_n.negedge, cs_n.negedge)
+    def HandleConsign():
+        """ Read consign, handle reset and increment counter """
         if rst_n == LOW:
             dcl.next = 0
-        elif cs_n == LOW:
-            dcl.next = consign
         else:
-            if cnt < dcl:
-                pwm.next = HIGH
-            else:
-                pwm.next = LOW
-            # could use modulo but brings in a megawizard function
-            if cnt < CLK_DIVIDER - 1:
-                cnt.next = cnt + 1
-            else:
-                cnt.next = 0
+            dcl.next = consign
 
-    return driveServo
+    @always(clk25.posedge)
+    def HandleCounter():
+        # could use modulo but brings in a megawizard function
+        if cnt < CLK_DIVIDER - 1:
+            cnt.next = cnt + 1
+        else:
+            cnt.next = 0
+
+    @always(cnt, dcl)
+    def DriveOutput():
+        """ Drive PWM output signal """
+        if cnt < dcl:
+            pwm.next = HIGH
+        else:
+            pwm.next = LOW
+
+    return instances()
