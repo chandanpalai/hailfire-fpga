@@ -30,60 +30,65 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
     """
 
     # 8-bit value sent by the master (key, length, value bytes)
-    # signal toggling when new rxdata is available
-    # previous value of that signal to see when it has toggled.
+    # and signal toggling when new rxdata is available
     rxdata = Signal(intbv(0)[8:])
     rxrdy = Signal(LOW)
-    previous_rxrdy = Signal(LOW)
 
     # 8-bit value to send to the master (key, length, value bytes)
-    # signal toggling when new txdata can be accepted
-    # previous value of that signal to see when it has toggled.
+    # and signal toggling when new txdata can be accepted
     txdata = Signal(intbv(0)[8:])
     txrdy = Signal(LOW)
 
     # Controller driver
     SPISlave_inst = SPISlave(miso, mosi, sclk, ss_n, txdata, txrdy, rxdata, rxrdy, rst_n, 8)
 
-    # Our state: where we are in the KLV-encoded pairs sent by the master
-    state = Signal(t_State.READ_SENT_KEY)
+    # Pulled low for 1 clock cycle when a new byte is received
+    byte_received_n = Signal(HIGH)
 
-    # Index of the currently read of written value byte
-    index = Signal(intbv(0)[8:])
-
+    # Monitor rxrdy to pull byte_received_n low when needed
     @instance
-    def HandleProtocol():
+    def PulsifyTogglingRxrdy():
+        # previous value of the rxrdy signal to see when it has toggled.
+        previous_rxrdy = LOW
         while True:
             yield clk25.posedge, rst_n.negedge
             if rst_n == LOW:
-                state.next = t_State.READ_SENT_KEY
+                byte_received_n.next = HIGH
+                previous_rxrdy = rxrdy.val
             else:
+                if rxrdy != previous_rxrdy: # changed
+                    byte_received_n.next = LOW
+                else:
+                    byte_received_n.next = HIGH
+                previous_rxrdy = rxrdy.val
+
+    @instance
+    def HandleProtocol():
+        # Index of the currently read or written value byte
+        index = 0
+
+        # Our state in the KLV SPI protocol
+        state = t_State.READ_SENT_KEY
+
+        while True:
+            yield clk25.posedge, rst_n.negedge
+
+            if rst_n == LOW:
+                state = t_State.READ_SENT_KEY
+
+            # received byte
+            elif byte_received_n == LOW:
+
                 # handle the key sent by the master
                 if state == t_State.READ_SENT_KEY:
-                    # reset
-                    txdata.next = 0
-                    index.next = 0
-                    master_write_n.next = HIGH
-                    master_read_n.next = HIGH
-
-                    # wait for the key byte to be received
-                    while rxrdy == previous_rxrdy: # no change
-                        yield rxrdy.posedge, rxrdy.negedge
-                    previous_rxrdy.next = rxrdy
-
                     # read key sent by master
                     key.next = rxdata
 
                     # need to read the length now
-                    state.next = t_State.READ_SENT_LENGTH
+                    state = t_State.READ_SENT_LENGTH
 
                 # handle the length of the value sent or expected by the master
                 elif state == t_State.READ_SENT_LENGTH:
-                    # wait for the length byte to be received
-                    while rxrdy == previous_rxrdy: # no change
-                        yield rxrdy.posedge, rxrdy.negedge
-                    previous_rxrdy.next = rxrdy
-
                     # read length sent by master
                     length.next = rxdata
 
@@ -91,57 +96,59 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
                     if key[7] == 0: # master read
                         master_read_n.next = LOW
                         if rxdata != 0: # read some bytes
-                            state.next = t_State.MASTER_READ
+                            state = t_State.MASTER_READ
                         else: # read 0 byte: done
-                            state.next = t_State.READ_SENT_KEY
+                            state = t_State.READ_SENT_KEY
                     else: # master write
                         if rxdata != 0: # write some bytes
-                            state.next = t_State.MASTER_WRITE
+                            state = t_State.MASTER_WRITE
                         else: # write 0 byte: done
                             master_write_n.next = LOW
-                            state.next = t_State.READ_SENT_KEY
+                            state = t_State.READ_SENT_KEY
 
                 # handle the value bytes sent by the master
                 elif state == t_State.MASTER_WRITE:
-                    # wait for the value byte to be received
-                    while rxrdy == previous_rxrdy: # no change
-                        yield rxrdy.posedge, rxrdy.negedge
-                    previous_rxrdy.next = rxrdy
-
                     # read value byte sent by master and store it
-                    value_from_master[int(index)].next = rxdata
+                    value_from_master[index].next = rxdata
 
                     if index == length - 1:
                         # Got everything
                         master_write_n.next = LOW
-                        state.next = t_State.READ_SENT_KEY
+                        state = t_State.READ_SENT_KEY
+                        index = 0
                     else:
                         # Get next byte
-                        index.next = index + 1
+                        index += 1
+
+                # increment index when each value byte expected by the master has been sent
+                elif state == t_State.MASTER_READ:
+                    if index == length - 1:
+                        # Sent everything
+                        state = t_State.READ_SENT_KEY
+                        txdata.next = 0
+                        index = 0
+                    else:
+                        # Send next byte
+                        index += 1
+
+            # normal clock tick
+            else:
+                if state == t_State.READ_SENT_KEY:
+                    master_write_n.next = HIGH
+                    master_read_n.next = HIGH
+
+                elif state == t_State.READ_SENT_LENGTH:
+                    pass
+
+                elif state == t_State.MASTER_WRITE:
+                    pass
 
                 # send the value bytes expected by the master
                 elif state == t_State.MASTER_READ:
                     # reset signal after 1 clk
                     master_read_n.next = HIGH
 
-                    # send value byte to master
+                    # send next value byte to master
                     txdata.next = value_for_master[int(index)]
 
-                    if index == length - 1:
-                        # Sent everything
-                        state.next = t_State.READ_SENT_KEY
-                    else:
-                        # Send next byte
-                        index.next = index + 1
-
-                    # wait for the value byte to be completely sent, by looking
-                    # for the placeholder byte sent by the master to be received.
-                    while rxrdy == previous_rxrdy: # no change
-                        yield rxrdy.posedge, rxrdy.negedge
-                    previous_rxrdy.next = rxrdy
-
-                # should not heppen
-                else:
-                    raise ValueError("Undefined state")
-
-    return SPISlave_inst, HandleProtocol
+    return instances()

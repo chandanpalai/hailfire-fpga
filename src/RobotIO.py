@@ -2,9 +2,10 @@ from myhdl import Signal, intbv, always, always_comb, instances
 from OdometerReader import OdometerReader
 from MotorDriver import MotorDriver
 from ServoDriver import ServoDriver
-from SPISlave import SPISlave
+from GumstixSPI import GumstixSPI
 
 LOW, HIGH = bool(0), bool(1)
+MAX_LENGTH = 256 # max length of values read or written by the Gumstix
 
 def RobotIO(
     clk25,
@@ -52,17 +53,16 @@ def RobotIO(
     """
     pass
 
-    # 16-bit value sent by the Gumstix (speed consign, position consign...)
-    # and signal toggling when new gs_rxdata is available.
-    gs_rxdata = Signal(intbv(0)[16:])
-    gs_rxrdy = Signal(bool(0))
-    previous_gs_rxrdy = Signal(LOW)
+    # communication with GumstixSPI
+    key = Signal(intbv(0)[8:])
+    length = Signal(intbv(0)[8:])
+    master_read_n = Signal(HIGH)
+    value_for_master = [Signal(intbv(0)[8:]) for i in range(MAX_LENGTH)]
+    master_write_n = Signal(HIGH)
+    value_from_master = [Signal(intbv(0)[8:]) for i in range(MAX_LENGTH)]
 
-    # 16-bit value to be sent to the Gumstix (odometer count, adc value...)
-    # and signal toggling when new gs_txdata can be accepted.
-    gs_txdata = Signal(intbv(0)[16:])
-    gs_txrdy = Signal(bool(0))
-    previous_gs_txrdy = Signal(LOW)
+    # 16-bit value sent by the Gumstix for many things (motor & servo consigns...)
+    gs_rxdata = Signal(intbv(0)[16:])
 
     # chip-wide active low reset signal
     rst_n = Signal(HIGH)
@@ -147,7 +147,9 @@ def RobotIO(
         rst_n.next = cs_0
 
     # Gumstix SPI
-    GumstixSPI = SPISlave(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, gs_txdata, gs_txrdy, gs_rxdata, gs_rxrdy, rst_n, 16)
+    GumstixSPI_inst = GumstixSPI(sspi_miso, sspi_mosi, sspi_clk, sspi_cs,
+                                 key, length, master_read_n, value_for_master, master_write_n, value_from_master,
+                                 clk25, rst_n)
 
     # Odometers
     rc1_count = Signal(intbv(0)[16:])
@@ -183,35 +185,46 @@ def RobotIO(
     Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, gs_rxdata, cs_27, rst_n)
     Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, gs_rxdata, cs_28, rst_n)
 
-    @always(clk25.posedge, rst_n.negedge)
+    @always(master_read_n.negedge, rst_n.negedge)
     def GumstixRead():
         if rst_n == LOW:
-            gs_txdata.next = intbv(0xDEAD)[16:]
-            previous_gs_txrdy.next = gs_txrdy
+            value_for_master[0].next = 0
         else:
-            if gs_txrdy ^ previous_gs_txrdy == 1: # it changed
-                if gs_rxdata == 1:
-                    gs_txdata.next = rc1_count
-                elif gs_rxdata == 2:
-                    gs_txdata.next = rc2_count
-                elif gs_rxdata == 3:
-                    gs_txdata.next = rc3_count
-                elif gs_rxdata == 4:
-                    gs_txdata.next = rc4_count
-                else:
-                    gs_txdata.next = intbv(0xDEAD)[16:]
-            previous_gs_txrdy.next = gs_txrdy
+            if key == 1:
+                value_for_master[0].next = rc1_count[16:8]
+                value_for_master[1].next = rc1_count[8:]
+            elif key == 2:
+                value_for_master[0].next = rc2_count[16:8]
+                value_for_master[1].next = rc2_count[8:]
+            elif key == 3:
+                value_for_master[0].next = rc3_count[16:8]
+                value_for_master[1].next = rc3_count[8:]
+            elif key == 4:
+                value_for_master[0].next = rc4_count[16:8]
+                value_for_master[1].next = rc4_count[8:]
+            else:
+                # Dummy value sent when key is unknown.
+                # The value is fixed. The master read 'length'
+                # bytes from it.
+                val = intbv(0xDEADBEEFBAADF00D)[64:]
+                value_for_master[0].next = val[64:56]
+                value_for_master[1].next = val[56:48]
+                value_for_master[2].next = val[48:40]
+                value_for_master[3].next = val[40:32]
+                value_for_master[4].next = val[32:24]
+                value_for_master[5].next = val[24:16]
+                value_for_master[6].next = val[16:8]
+                value_for_master[7].next = val[8:]
 
-    @always(clk25.posedge, rst_n.negedge)
+    @always(master_write_n.negedge, rst_n.negedge)
     def GumstixWrite():
         if rst_n == LOW:
             cs_n.next = intbv(0xFFFFFFFF)[32:]
-            previous_gs_rxrdy.next = gs_rxrdy
         else:
-            if gs_rxrdy ^ previous_gs_rxrdy == 1: # it changed
-                val = intbv(0xFFFFFFFF)[32:]
-                val[int(gs_rxdata)] = 0
-                cs_n.next = val
-            previous_gs_rxrdy.next = gs_rxrdy
+            gs_rxdata.next[16:8] = value_from_master[0]
+            gs_rxdata.next[8:] = value_from_master[1]
+            val = intbv(0xFFFFFFFF)[32:]
+            val[int(key)] = 0
+            cs_n.next = val
 
     return instances()
