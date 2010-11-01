@@ -57,9 +57,9 @@ def RobotIO(
     key = Signal(intbv(0)[8:])
     length = Signal(intbv(0)[8:])
     master_read_n = Signal(HIGH)
-    value_for_master = [Signal(intbv(0)[8:]) for i in range(MAX_LENGTH)]
+    value_for_master = Signal(intbv(0)[MAX_LENGTH*8:])
     master_write_n = Signal(HIGH)
-    value_from_master = [Signal(intbv(0)[8:]) for i in range(MAX_LENGTH)]
+    value_from_master = Signal(intbv(0)[MAX_LENGTH*8:])
 
     # 16-bit value sent by the Gumstix for many things (motor & servo consigns...)
     gs_rxdata = Signal(intbv(0)[16:])
@@ -189,95 +189,84 @@ def RobotIO(
     @always(master_read_n.negedge, rst_n.negedge)
     def GumstixRead():
         if rst_n == LOW:
-            value_for_master[0].next = 0
+            value_for_master.next[MAX_LENGTH*8:] = 0
         else:
             if key == 0x11:
-                value_for_master[0].next = rc1_count[16:8]
-                value_for_master[1].next = rc1_count[8:]
+                value_for_master.next[16:] = rc1_count
             elif key == 0x12:
-                value_for_master[0].next = rc2_count[16:8]
-                value_for_master[1].next = rc2_count[8:]
+                value_for_master.next[16:] = rc2_count
             elif key == 0x13:
-                value_for_master[0].next = rc3_count[16:8]
-                value_for_master[1].next = rc3_count[8:]
+                value_for_master.next[16:] = rc3_count
             elif key == 0x14:
-                value_for_master[0].next = rc4_count[16:8]
-                value_for_master[1].next = rc4_count[8:]
+                value_for_master.next[16:] = rc4_count
             elif key == 0x21:
-                value_for_master[0][0].next = ext1_0
-                value_for_master[0][1].next = ext1_1
-                value_for_master[0][2].next = ext1_2
-                value_for_master[0][3].next = ext1_3
-                value_for_master[0][4].next = ext1_4
-                value_for_master[0][5].next = ext1_5
-                value_for_master[0][6].next = ext1_6
-                value_for_master[0][7].next = ext1_7
+                value_for_master.next[0] = ext1_0
+                value_for_master.next[1] = ext1_1
+                value_for_master.next[2] = ext1_2
+                value_for_master.next[3] = ext1_3
+                value_for_master.next[4] = ext1_4
+                value_for_master.next[5] = ext1_5
+                value_for_master.next[6] = ext1_6
+                value_for_master.next[7] = ext1_7
             elif key == 0x22:
-                value_for_master[0][0].next = ext2_0
-                value_for_master[0][1].next = ext2_1
-                value_for_master[0][2].next = ext2_2
-                value_for_master[0][3].next = ext2_3
-                value_for_master[0][4].next = ext2_4
-                value_for_master[0][5].next = ext2_5
-                value_for_master[0][6].next = ext2_6
-                value_for_master[0][7].next = ext2_7
+                value_for_master.next[0] = ext2_0
+                value_for_master.next[1] = ext2_1
+                value_for_master.next[2] = ext2_2
+                value_for_master.next[3] = ext2_3
+                value_for_master.next[4] = ext2_4
+                value_for_master.next[5] = ext2_5
+                value_for_master.next[6] = ext2_6
+                value_for_master.next[7] = ext2_7
             elif key == 0x23:
-                value_for_master[0][0].next = ext3_0
-                value_for_master[0][1].next = ext3_1
-                value_for_master[0][2].next = ext3_2
-                value_for_master[0][3].next = ext3_3
-                value_for_master[0][4].next = ext3_4
-                value_for_master[0][5].next = ext3_5
-                value_for_master[0][6].next = ext3_6
-                value_for_master[0][7].next = ext3_7
+                value_for_master.next[0] = ext3_0
+                value_for_master.next[1] = ext3_1
+                value_for_master.next[2] = ext3_2
+                value_for_master.next[3] = ext3_3
+                value_for_master.next[4] = ext3_4
+                value_for_master.next[5] = ext3_5
+                value_for_master.next[6] = ext3_6
+                value_for_master.next[7] = ext3_7
             elif key == 0x24:
-                value_for_master[0][0].next = ext4_0
-                value_for_master[0][1].next = ext4_1
-                value_for_master[0][2].next = ext4_2
-                value_for_master[0][3].next = ext4_3
-                value_for_master[0][4].next = ext4_4
-                value_for_master[0][5].next = ext4_5
-                value_for_master[0][6].next = ext4_6
-                value_for_master[0][7].next = ext4_7
+                value_for_master.next[0] = ext4_0
+                value_for_master.next[1] = ext4_1
+                value_for_master.next[2] = ext4_2
+                value_for_master.next[3] = ext4_3
+                value_for_master.next[4] = ext4_4
+                value_for_master.next[5] = ext4_5
+                value_for_master.next[6] = ext4_6
+                value_for_master.next[7] = ext4_7
             elif key == 0x25:
-                value_for_master[0][0].next = ext5_0
-                value_for_master[0][1].next = ext5_1
-                value_for_master[0][2].next = ext5_2
-                value_for_master[0][3].next = ext5_3
-                value_for_master[0][4].next = ext5_4
-                value_for_master[0][5].next = ext5_5
-                value_for_master[0][6].next = ext5_6
-                value_for_master[0][7].next = ext5_7
+                value_for_master.next[0] = ext5_0
+                value_for_master.next[1] = ext5_1
+                value_for_master.next[2] = ext5_2
+                value_for_master.next[3] = ext5_3
+                value_for_master.next[4] = ext5_4
+                value_for_master.next[5] = ext5_5
+                value_for_master.next[6] = ext5_6
+                value_for_master.next[7] = ext5_7
             elif key == 0x26:
-                value_for_master[0][0].next = ext6_0
-                value_for_master[0][1].next = ext6_1
-                value_for_master[0][2].next = ext6_2
-                value_for_master[0][3].next = ext6_3
-                value_for_master[0][4].next = ext6_4
-                value_for_master[0][5].next = ext6_5
-                value_for_master[0][6].next = ext6_6
-                value_for_master[0][7].next = ext6_7
+                value_for_master.next[0] = ext6_0
+                value_for_master.next[1] = ext6_1
+                value_for_master.next[2] = ext6_2
+                value_for_master.next[3] = ext6_3
+                value_for_master.next[4] = ext6_4
+                value_for_master.next[5] = ext6_5
+                value_for_master.next[6] = ext6_6
+                value_for_master.next[7] = ext6_7
             elif key == 0x27:
-                value_for_master[0][0].next = ext7_0
-                value_for_master[0][1].next = ext7_1
-                value_for_master[0][2].next = ext7_2
-                value_for_master[0][3].next = ext7_3
-                value_for_master[0][4].next = ext7_4
-                value_for_master[0][5].next = ext7_5
-                value_for_master[0][6].next = ext7_6
-                value_for_master[0][7].next = ext7_7
+                value_for_master.next[0] = ext7_0
+                value_for_master.next[1] = ext7_1
+                value_for_master.next[2] = ext7_2
+                value_for_master.next[3] = ext7_3
+                value_for_master.next[4] = ext7_4
+                value_for_master.next[5] = ext7_5
+                value_for_master.next[6] = ext7_6
+                value_for_master.next[7] = ext7_7
             else:
                 # Dummy value sent when key is unknown.
                 # The value is fixed. The master read 'length'
                 # bytes from it.
-                value_for_master[0].next = intbv(0xDE)[8:]
-                value_for_master[1].next = intbv(0xAD)[8:]
-                value_for_master[2].next = intbv(0xBE)[8:]
-                value_for_master[3].next = intbv(0xEF)[8:]
-                value_for_master[4].next = intbv(0xBA)[8:]
-                value_for_master[5].next = intbv(0xAD)[8:]
-                value_for_master[6].next = intbv(0xF0)[8:]
-                value_for_master[7].next = intbv(0x0D)[8:]
+                value_for_master.next[64:] = 0xDEADBEEFBAADF00D
 
     # Master writes: 0x81 <= key <= 0xFF
     @always(master_write_n.negedge, rst_n.negedge)
@@ -292,16 +281,14 @@ def RobotIO(
 
             # Motors                
             elif 0x91 <= key and key <= 0x98:
-                gs_rxdata.next[16:8] = value_from_master[0]
-                gs_rxdata.next[8:] = value_from_master[1]
+                gs_rxdata.next[16:] = value_from_master[16:]
 
                 cs_n.next = intbv(0xFFFFFFFF)[32:]
                 cs_n[int(key) - 0x80].next = 0
 
             # Servos
             elif 0xA1 <= key and key <= 0xA8:
-                gs_rxdata.next[16:8] = value_from_master[0]
-                gs_rxdata.next[8:] = value_from_master[1]
+                gs_rxdata.next[16:] = value_from_master[16:]
 
                 cs_n.next = intbv(0xFFFFFFFF)[32:]
                 cs_n[int(key) - 0x80].next = 0

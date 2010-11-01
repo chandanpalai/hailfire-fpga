@@ -5,6 +5,8 @@ from myhdl import Signal, intbv, traceSignals, Simulation, join, delay, downrang
 
 from GumstixSPI import GumstixSPI, LOW, HIGH
 
+MAX_LENGTH = 256 # max length of values read or written by the Gumstix
+
 def ClkGen(clk):
     """ 25 MHz clock generator.
     clk -- clock signal
@@ -23,9 +25,9 @@ def TestBench(GumstixSPITester):
     key = Signal(intbv(0)[8:])
     length = Signal(intbv(0)[8:])
     master_read_n = Signal(HIGH)
-    value_for_master = [Signal(intbv(0)[8:]) for i in range(256)]
+    value_for_master = Signal(intbv(0)[MAX_LENGTH*8:])
     master_write_n = Signal(HIGH)
-    value_from_master = [Signal(intbv(0)[8:]) for i in range(256)]
+    value_from_master = Signal(intbv(0)[MAX_LENGTH*8:])
     clk = Signal(bool(0))
     rst_n = Signal(HIGH)
 
@@ -93,9 +95,9 @@ class TestGumstixSPI(unittest.TestCase):
             self.assertEqual(key, self.master_to_slave[n:n-8])
             print 'slave read length:', hex(length)
             self.assertEqual(length, self.master_to_slave[n-8:n-16])
-            for j in range((n-16)/8):
-                print 'slave read value byte', j, ':', hex(value_from_master[j])
-                self.assertEqual(value_from_master[j], self.master_to_slave[n-16-8*j:n-16-8*(j+1)])
+            if length > 0:
+                print 'slave should have read value:', hex(self.master_to_slave[n-16:])
+                self.assertEqual(value_from_master[length*8:], self.master_to_slave[n-16:])
 
         def check_read():
             """ Check that what the SPI slave sent corresponds to expected data """
@@ -106,14 +108,15 @@ class TestGumstixSPI(unittest.TestCase):
             self.assertEqual(key, self.master_to_slave[n:n-8])
             print 'slave read length:', hex(length)
             self.assertEqual(length, self.master_to_slave[n-8:n-16])
-            print 'slave ask for', length, 'bytes to send them to master'
-            for j in range(length):
-                value_for_master[j].next = key + j
+            if length > 0:
+                print 'slave ask for', length, 'bytes to send them to master'
+                value_for_master.next[length*8:] = randrange(256*length)
+
             # Wait for end of transfer
             yield ss_n.posedge
-            for j in range((n-16)/8):
-                print 'slave sent value byte', j, ':', hex(value_for_master[j])
-                self.assertEqual(value_for_master[j], self.slave_to_master[n-16-8*j:n-16-8*(j+1)])
+            if length > 0:
+                print 'slave sent value:', hex(value_for_master[length*8:])
+                self.assertEqual(value_for_master[length*8:], self.slave_to_master[n-16:])
 
         # Send write commands with values from 0 to 8 bytes
         for i in range(10):
