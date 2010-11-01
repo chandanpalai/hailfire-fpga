@@ -145,7 +145,7 @@ def RobotIO(
         cs_31.next = cs_n[31]
 
     # Chip-wide reset
-    @always_comb
+    @always(clk25.posedge)
     def driveReset():
         rst_n.next = cs_0
 
@@ -189,112 +189,114 @@ def RobotIO(
     Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, gs_rxdata, cs_28, rst_n)
 
     # Master reads: 0x01 <= key <= 0x7F
-    @always(master_read_n.negedge, rst_n.negedge)
+    @always(clk25.posedge, rst_n.negedge)
     def GumstixRead():
         if rst_n == LOW:
             value_for_master.next[:] = 0
         else:
-            value_for_master.next[:] = 0
-            if key == 0x11:
-                value_for_master.next[16:] = rc1_count
-            elif key == 0x12:
-                value_for_master.next[16:] = rc2_count
-            elif key == 0x13:
-                value_for_master.next[16:] = rc3_count
-            elif key == 0x14:
-                value_for_master.next[16:] = rc4_count
-            elif key == 0x21:
-                value_for_master.next[0] = ext1_0
-                value_for_master.next[1] = ext1_1
-                value_for_master.next[2] = ext1_2
-                value_for_master.next[3] = ext1_3
-                value_for_master.next[4] = ext1_4
-                value_for_master.next[5] = ext1_5
-                value_for_master.next[6] = ext1_6
-                value_for_master.next[7] = ext1_7
-            elif key == 0x22:
-                value_for_master.next[0] = ext2_0
-                value_for_master.next[1] = ext2_1
-                value_for_master.next[2] = ext2_2
-                value_for_master.next[3] = ext2_3
-                value_for_master.next[4] = ext2_4
-                value_for_master.next[5] = ext2_5
-                value_for_master.next[6] = ext2_6
-                value_for_master.next[7] = ext2_7
-            elif key == 0x23:
-                value_for_master.next[0] = ext3_0
-                value_for_master.next[1] = ext3_1
-                value_for_master.next[2] = ext3_2
-                value_for_master.next[3] = ext3_3
-                value_for_master.next[4] = ext3_4
-                value_for_master.next[5] = ext3_5
-                value_for_master.next[6] = ext3_6
-                value_for_master.next[7] = ext3_7
-            elif key == 0x24:
-                value_for_master.next[0] = ext4_0
-                value_for_master.next[1] = ext4_1
-                value_for_master.next[2] = ext4_2
-                value_for_master.next[3] = ext4_3
-                value_for_master.next[4] = ext4_4
-                value_for_master.next[5] = ext4_5
-                value_for_master.next[6] = ext4_6
-                value_for_master.next[7] = ext4_7
-            elif key == 0x25:
-                value_for_master.next[0] = ext5_0
-                value_for_master.next[1] = ext5_1
-                value_for_master.next[2] = ext5_2
-                value_for_master.next[3] = ext5_3
-                value_for_master.next[4] = ext5_4
-                value_for_master.next[5] = ext5_5
-                value_for_master.next[6] = ext5_6
-                value_for_master.next[7] = ext5_7
-            elif key == 0x26:
-                value_for_master.next[0] = ext6_0
-                value_for_master.next[1] = ext6_1
-                value_for_master.next[2] = ext6_2
-                value_for_master.next[3] = ext6_3
-                value_for_master.next[4] = ext6_4
-                value_for_master.next[5] = ext6_5
-                value_for_master.next[6] = ext6_6
-                value_for_master.next[7] = ext6_7
-            elif key == 0x27:
-                value_for_master.next[0] = ext7_0
-                value_for_master.next[1] = ext7_1
-                value_for_master.next[2] = ext7_2
-                value_for_master.next[3] = ext7_3
-                value_for_master.next[4] = ext7_4
-                value_for_master.next[5] = ext7_5
-                value_for_master.next[6] = ext7_6
-                value_for_master.next[7] = ext7_7
-            else:
-                # Dummy value sent when key is unknown.
-                # The value is fixed. The master read 'length'
-                # bytes from it.
-                value_for_master.next[64:] = 0xDEADBEEFBAADF00D
+            if master_read_n == LOW:
+                value_for_master.next[:] = 0
+                if key == 0x11:
+                    value_for_master.next[16:] = rc1_count
+                elif key == 0x12:
+                    value_for_master.next[16:] = rc2_count
+                elif key == 0x13:
+                    value_for_master.next[16:] = rc3_count
+                elif key == 0x14:
+                    value_for_master.next[16:] = rc4_count
+                elif key == 0x21:
+                    value_for_master.next[0] = ext1_0
+                    value_for_master.next[1] = ext1_1
+                    value_for_master.next[2] = ext1_2
+                    value_for_master.next[3] = ext1_3
+                    value_for_master.next[4] = ext1_4
+                    value_for_master.next[5] = ext1_5
+                    value_for_master.next[6] = ext1_6
+                    value_for_master.next[7] = ext1_7
+                elif key == 0x22:
+                    value_for_master.next[0] = ext2_0
+                    value_for_master.next[1] = ext2_1
+                    value_for_master.next[2] = ext2_2
+                    value_for_master.next[3] = ext2_3
+                    value_for_master.next[4] = ext2_4
+                    value_for_master.next[5] = ext2_5
+                    value_for_master.next[6] = ext2_6
+                    value_for_master.next[7] = ext2_7
+                elif key == 0x23:
+                    value_for_master.next[0] = ext3_0
+                    value_for_master.next[1] = ext3_1
+                    value_for_master.next[2] = ext3_2
+                    value_for_master.next[3] = ext3_3
+                    value_for_master.next[4] = ext3_4
+                    value_for_master.next[5] = ext3_5
+                    value_for_master.next[6] = ext3_6
+                    value_for_master.next[7] = ext3_7
+                elif key == 0x24:
+                    value_for_master.next[0] = ext4_0
+                    value_for_master.next[1] = ext4_1
+                    value_for_master.next[2] = ext4_2
+                    value_for_master.next[3] = ext4_3
+                    value_for_master.next[4] = ext4_4
+                    value_for_master.next[5] = ext4_5
+                    value_for_master.next[6] = ext4_6
+                    value_for_master.next[7] = ext4_7
+                elif key == 0x25:
+                    value_for_master.next[0] = ext5_0
+                    value_for_master.next[1] = ext5_1
+                    value_for_master.next[2] = ext5_2
+                    value_for_master.next[3] = ext5_3
+                    value_for_master.next[4] = ext5_4
+                    value_for_master.next[5] = ext5_5
+                    value_for_master.next[6] = ext5_6
+                    value_for_master.next[7] = ext5_7
+                elif key == 0x26:
+                    value_for_master.next[0] = ext6_0
+                    value_for_master.next[1] = ext6_1
+                    value_for_master.next[2] = ext6_2
+                    value_for_master.next[3] = ext6_3
+                    value_for_master.next[4] = ext6_4
+                    value_for_master.next[5] = ext6_5
+                    value_for_master.next[6] = ext6_6
+                    value_for_master.next[7] = ext6_7
+                elif key == 0x27:
+                    value_for_master.next[0] = ext7_0
+                    value_for_master.next[1] = ext7_1
+                    value_for_master.next[2] = ext7_2
+                    value_for_master.next[3] = ext7_3
+                    value_for_master.next[4] = ext7_4
+                    value_for_master.next[5] = ext7_5
+                    value_for_master.next[6] = ext7_6
+                    value_for_master.next[7] = ext7_7
+                else:
+                    # Dummy value sent when key is unknown.
+                    # The value is fixed. The master read 'length'
+                    # bytes from it.
+                    value_for_master.next[64:] = 0xDEADBEEFBAADF00D
 
     # Master writes: 0x81 <= key <= 0xFF
-    @always(master_write_n.negedge, rst_n.negedge)
+    @always(clk25.posedge, rst_n.negedge)
     def GumstixWrite():
         if rst_n == LOW:
             cs_n.next = intbv(0xFFFFFFFF)[32:]
         else:
-            # Reset
-            if key == 0x81:
-                cs_n.next = intbv(0xFFFFFFFF)[32:]
-                cs_n[0].next = 0
+            if master_write_n == LOW:
+                # Reset
+                if key == 0x81:
+                    cs_n.next = intbv(0xFFFFFFFF)[32:]
+                    cs_n[0].next = 0
 
-            # Motors                
-            elif 0x91 <= key and key <= 0x98:
-                gs_rxdata.next[16:] = value_from_master[16:]
+                # Motors
+                elif 0x91 <= key and key <= 0x98:
+                    gs_rxdata.next[16:] = value_from_master[16:]
 
-                cs_n.next = intbv(0xFFFFFFFF)[32:]
-                cs_n[int(key) - 0x80].next = 0
+                    cs_n.next = intbv(0xFFFFFFFF)[32:]
+                    cs_n[int(key) - 0x80].next = 0
 
-            # Servos
-            elif 0xA1 <= key and key <= 0xA8:
-                gs_rxdata.next[16:] = value_from_master[16:]
+                # Servos
+                elif 0xA1 <= key and key <= 0xA8:
+                    gs_rxdata.next[16:] = value_from_master[16:]
 
-                cs_n.next = intbv(0xFFFFFFFF)[32:]
-                cs_n[int(key) - 0x80].next = 0
+                    cs_n.next = intbv(0xFFFFFFFF)[32:]
+                    cs_n[int(key) - 0x80].next = 0
 
     return instances()
