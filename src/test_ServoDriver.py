@@ -40,9 +40,10 @@ class TestServoDriver(unittest.TestCase):
         def ServoTester(pwm, clk, consign, cs_n, rst_n):
             consign.next = 37500
 
-            # read consign
+            # read consign (assert cs_n for 1 clk period)
+            yield clk.posedge
             cs_n.next = LOW
-            yield delay(1)
+            yield clk.posedge
             cs_n.next = HIGH
 
         """ Test ServoDriver """

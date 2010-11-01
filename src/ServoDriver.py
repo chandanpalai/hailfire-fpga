@@ -38,21 +38,21 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
     # duty cycle is a 16-bit integer
     dcl = Signal(intbv(0)[16:])
 
-    @always(rst_n.negedge, cs_n.negedge)
+    @always(clk25.posedge, rst_n.negedge)
     def HandleConsign():
         """ Read consign, handle reset and increment counter """
         if rst_n == LOW:
             dcl.next = 0
         else:
-            dcl.next = consign
+            # handle new consign
+            if cs_n == LOW:
+                dcl.next = consign[10:]
 
-    @always(clk25.posedge)
-    def HandleCounter():
-        # could use modulo but brings in a megawizard function
-        if cnt < CLK_DIVIDER - 1:
-            cnt.next = cnt + 1
-        else:
-            cnt.next = 0
+            # could use modulo but brings in a megawizard function
+            if cnt == CLK_DIVIDER - 1:
+                cnt.next = 0
+            else:
+                cnt.next = cnt + 1
 
     @always(cnt, dcl)
     def DriveOutput():

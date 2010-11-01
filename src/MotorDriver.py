@@ -28,7 +28,7 @@ def MotorDriver(pwm, dir, en_n, clk25, consign, cs_n, rst_n):
     # duty cycle is a 10-bit integer
     dcl = Signal(intbv(0)[10:])
 
-    @always(rst_n.negedge, cs_n.negedge)
+    @always(clk25.posedge, rst_n.negedge)
     def HandleConsign():
         """ Read consign, handle reset and increment counter """
         if rst_n == LOW:
@@ -36,17 +36,17 @@ def MotorDriver(pwm, dir, en_n, clk25, consign, cs_n, rst_n):
             dir.next = HIGH
             en_n.next = HIGH
         else:
-            dcl.next = consign[10:]
-            dir.next = consign[10]
-            en_n.next = consign[11]
+            # handle new consign
+            if cs_n == LOW:
+                dcl.next = consign[10:]
+                dir.next = consign[10]
+                en_n.next = consign[11]
 
-    @always(clk25.posedge)
-    def HandleCounter():
-        # could use modulo but brings in a megawizard function
-        if cnt < CLK_DIVIDER - 1:
-            cnt.next = cnt + 1
-        else:
-            cnt.next = 0
+            # could use modulo but brings in a megawizard function
+            if cnt == CLK_DIVIDER - 1:
+                cnt.next = 0
+            else:
+                cnt.next = cnt + 1
 
     @always(cnt, dcl)
     def DriveOutput():

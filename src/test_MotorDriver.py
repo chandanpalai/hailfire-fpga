@@ -45,9 +45,10 @@ class TestMotorDriver(unittest.TestCase):
             val[11] = LOW        # enable
             consign.next = val
 
-            # read consign
+            # read consign (assert cs_n for 1 clk period)
+            yield clk.posedge
             cs_n.next = LOW
-            yield delay(1)
+            yield clk.posedge
             cs_n.next = HIGH
 
         """ Test MotorDriver """
