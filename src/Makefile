@@ -2,6 +2,7 @@ build:
 	python toVHDL_RobotIO.py
 
 test:
+	python test_GumstixSPI.py
 	python test_MotorDriver.py
 	python test_OdometerReader.py
 	python test_ServoDriver.py
