@@ -3,7 +3,7 @@ from SPISlave import SPISlave
 
 LOW, HIGH = bool(0), bool(1)
 
-t_State = enum('READ_SENT_KEY', 'READ_SENT_LENGTH', 'MASTER_WRITE', 'MASTER_READ')
+t_State = enum('READ_KEY', 'GET_READ_LENGTH', 'GET_WRITE_LENGTH', 'MASTER_WRITE', 'MASTER_READ')
 
 def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_master, master_write_n, value_from_master, clk25, rst_n):
     """ Protocol driver for SPI slave communication with the Gumstix.
@@ -68,44 +68,53 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
         index = len(value_for_master)
 
         # Our state in the KLV SPI protocol
-        state = t_State.READ_SENT_KEY
+        state = t_State.READ_KEY
 
         while True:
             yield clk25.posedge, rst_n.negedge
 
             if rst_n == LOW:
-                state = t_State.READ_SENT_KEY
+                state = t_State.READ_KEY
 
             # received byte
             elif byte_received_n == LOW:
 
                 # handle the key sent by the master
-                if state == t_State.READ_SENT_KEY:
+                if state == t_State.READ_KEY:
                     # read key sent by master
                     key.next = rxdata
 
                     # need to read the length now
-                    state = t_State.READ_SENT_LENGTH
+                    # does the master want to read or write?
+                    if rxdata[7] == 0: # master read
+                        state = t_State.GET_READ_LENGTH
+                    else: # master write
+                        state = t_State.GET_WRITE_LENGTH
 
-                # handle the length of the value sent or expected by the master
-                elif state == t_State.READ_SENT_LENGTH:
+                # handle the length of the value sent by the master
+                elif state == t_State.GET_WRITE_LENGTH:
                     # read length sent by master
                     length.next = rxdata
                     index = 8 * (rxdata - 1)
 
-                    # might need to read or write
-                    if key[7] == 0: # master read
-                        master_read_n.next = LOW
-                        if rxdata != 0: # read some bytes
-                            state = t_State.MASTER_READ
-                        else: # read 0 byte: done
-                            state = t_State.READ_SENT_KEY
-                    else: # master write
-                        if rxdata != 0: # write some bytes
-                            state = t_State.MASTER_WRITE
-                        else: # write 0 byte: done
-                            master_write_n.next = LOW
-                            state = t_State.READ_SENT_KEY
+                    if rxdata != 0: # write some bytes
+                        state = t_State.MASTER_WRITE
+                    else: # write 0 byte: done
+                        master_write_n.next = LOW
+                        state = t_State.READ_KEY
+
+                # handle the length of the value expected by the master
+                elif state == t_State.GET_READ_LENGTH:
+                    # read length sent by master
+                    length.next = rxdata
+                    index = 8 * (rxdata - 1)
+
+                    master_read_n.next = LOW
+
+                    if rxdata != 0: # read some bytes
+                        state = t_State.MASTER_READ
+                    else: # read 0 byte: done
+                        state = t_State.READ_KEY
 
                 # handle the value bytes sent by the master
                 elif state == t_State.MASTER_WRITE:
@@ -118,7 +127,7 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
                     else:
                         # Got everything
                         master_write_n.next = LOW
-                        state = t_State.READ_SENT_KEY
+                        state = t_State.READ_KEY
                         index = len(value_from_master)
 
                 # decrement index when each value byte expected by the master has been sent
@@ -128,17 +137,20 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
                         index -= 8
                     else:
                         # Sent everything
-                        state = t_State.READ_SENT_KEY
+                        state = t_State.READ_KEY
                         txdata.next = 0
                         index = len(value_for_master)
 
             # normal clock tick
             else:
-                if state == t_State.READ_SENT_KEY:
+                if state == t_State.READ_KEY:
                     master_write_n.next = HIGH
                     master_read_n.next = HIGH
 
-                elif state == t_State.READ_SENT_LENGTH:
+                elif state == t_State.GET_READ_LENGTH:
+                    pass
+
+                elif state == t_State.GET_WRITE_LENGTH:
                     pass
 
                 elif state == t_State.MASTER_WRITE:
