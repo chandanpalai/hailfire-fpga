@@ -192,8 +192,9 @@ def RobotIO(
     @always(master_read_n.negedge, rst_n.negedge)
     def GumstixRead():
         if rst_n == LOW:
-            value_for_master.next[MAX_LENGTH*8:] = 0
+            value_for_master.next[:] = 0
         else:
+            value_for_master.next[:] = 0
             if key == 0x11:
                 value_for_master.next[16:] = rc1_count
             elif key == 0x12:
