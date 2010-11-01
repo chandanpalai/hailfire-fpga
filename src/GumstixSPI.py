@@ -54,7 +54,6 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
             yield clk25.posedge, rst_n.negedge
             if rst_n == LOW:
                 byte_received_n.next = HIGH
-                previous_rxrdy = rxrdy.val
             else:
                 if rxrdy != previous_rxrdy: # changed
                     byte_received_n.next = LOW
