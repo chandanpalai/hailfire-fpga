@@ -5,7 +5,10 @@ from ServoDriver import ServoDriver
 from GumstixSPI import GumstixSPI
 
 LOW, HIGH = bool(0), bool(1)
-MAX_LENGTH = 256 # max length of values read or written by the Gumstix
+
+# max length of values read or written by the Gumstix
+# (the maximum for this value is 256)
+MAX_LENGTH = 8
 
 def RobotIO(
     clk25,
