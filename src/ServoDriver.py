@@ -46,7 +46,7 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
         else:
             # handle new consign
             if cs_n == LOW:
-                dcl.next = consign[10:]
+                dcl.next = consign
 
             # could use modulo but brings in a megawizard function
             if cnt == CLK_DIVIDER - 1:
