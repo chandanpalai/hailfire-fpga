@@ -71,96 +71,89 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
 
         while True:
             yield clk25.posedge, rst_n.negedge
-
             if rst_n == LOW:
                 state = t_State.READ_KEY
-
-            # received byte
-            elif byte_received_n == LOW:
-
-                # handle the key sent by the master
-                if state == t_State.READ_KEY:
-                    # read key sent by master
-                    key.next = rxdata
-
-                    # need to read the length now
-                    # does the master want to read or write?
-                    if rxdata[7] == 0: # master read
-                        state = t_State.GET_READ_LENGTH
-                    else: # master write
-                        state = t_State.GET_WRITE_LENGTH
-
-                # handle the length of the value sent by the master
-                elif state == t_State.GET_WRITE_LENGTH:
-                    # read length sent by master
-                    length.next = rxdata
-                    index = 8 * (rxdata - 1)
-
-                    if rxdata != 0: # write some bytes
-                        state = t_State.MASTER_WRITE
-                    else: # write 0 byte: done
-                        master_write_n.next = LOW
-                        state = t_State.READ_KEY
-
-                # handle the length of the value expected by the master
-                elif state == t_State.GET_READ_LENGTH:
-                    # read length sent by master
-                    length.next = rxdata
-                    index = 8 * (rxdata - 1)
-
-                    master_read_n.next = LOW
-
-                    if rxdata != 0: # read some bytes
-                        state = t_State.MASTER_READ
-                    else: # read 0 byte: done
-                        state = t_State.READ_KEY
-
-                # handle the value bytes sent by the master
-                elif state == t_State.MASTER_WRITE:
-                    # read value byte sent by master and store it
-                    value_from_master.next[int(index) + 8:int(index)] = rxdata
-
-                    if index >= 8:
-                        # Get next byte
-                        index -= 8
-                    else:
-                        # Got everything
-                        master_write_n.next = LOW
-                        state = t_State.READ_KEY
-                        index = len(value_from_master)
-
-                # decrement index when each value byte expected by the master has been sent
-                elif state == t_State.MASTER_READ:
-                    if index >= 8:
-                        # Send next byte
-                        index -= 8
-                    else:
-                        # Sent everything
-                        state = t_State.READ_KEY
-                        txdata.next = 0
-                        index = len(value_for_master)
-
-            # normal clock tick
             else:
-                if state == t_State.READ_KEY:
-                    master_write_n.next = HIGH
-                    master_read_n.next = HIGH
+                # reset signals after 1 clk
+                master_write_n.next = HIGH
+                master_read_n.next = HIGH
 
+                # do stuff at clock tick
+                if state == t_State.READ_KEY:
+                    pass
                 elif state == t_State.GET_READ_LENGTH:
                     pass
-
                 elif state == t_State.GET_WRITE_LENGTH:
                     pass
-
                 elif state == t_State.MASTER_WRITE:
                     pass
-
-                # send the value bytes expected by the master
                 elif state == t_State.MASTER_READ:
-                    # reset signal after 1 clk
-                    master_read_n.next = HIGH
-
                     # send next value byte to master
                     txdata.next = value_for_master[int(index) + 8:int(index)]
+
+                # do stuff at clock tick when a byte has been received
+                if byte_received_n == LOW:
+
+                    # handle the key sent by the master
+                    if state == t_State.READ_KEY:
+                        # read key sent by master
+                        key.next = rxdata
+
+                        # need to read the length now
+                        # does the master want to read or write?
+                        if rxdata[7] == 0: # master read
+                            state = t_State.GET_READ_LENGTH
+                        else: # master write
+                            state = t_State.GET_WRITE_LENGTH
+
+                    # handle the length of the value sent by the master
+                    elif state == t_State.GET_WRITE_LENGTH:
+                        # read length sent by master
+                        length.next = rxdata
+                        index = 8 * (rxdata - 1)
+
+                        if rxdata != 0: # write some bytes
+                            state = t_State.MASTER_WRITE
+                        else: # write 0 byte: done
+                            master_write_n.next = LOW
+                            state = t_State.READ_KEY
+
+                    # handle the length of the value expected by the master
+                    elif state == t_State.GET_READ_LENGTH:
+                        # read length sent by master
+                        length.next = rxdata
+                        index = 8 * (rxdata - 1)
+
+                        master_read_n.next = LOW
+
+                        if rxdata != 0: # read some bytes
+                            state = t_State.MASTER_READ
+                        else: # read 0 byte: done
+                            state = t_State.READ_KEY
+
+                    # handle the value bytes sent by the master
+                    elif state == t_State.MASTER_WRITE:
+                        # read value byte sent by master and store it
+                        value_from_master.next[int(index) + 8:int(index)] = rxdata
+
+                        if index >= 8:
+                            # Get next byte
+                            index -= 8
+                        else:
+                            # Got everything
+                            master_write_n.next = LOW
+                            state = t_State.READ_KEY
+                            index = len(value_from_master)
+
+                    # decrement index when each value byte expected by the master has been sent
+                    elif state == t_State.MASTER_READ:
+                        if index >= 8:
+                            # Send next byte
+                            index -= 8
+                        else:
+                            # Sent everything
+                            state = t_State.READ_KEY
+                            txdata.next = 0
+                            index = len(value_for_master)
 
     return instances()
