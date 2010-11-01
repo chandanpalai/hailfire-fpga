@@ -71,7 +71,6 @@ def RobotIO(
     rst_n = Signal(HIGH)
 
     # chip select signals
-    # TODO: assert chip select on address sent by Gumstix
     cs_n = Signal(intbv(0)[32:])
 
     # These signals and the slice_shadower could be replaced by shadow signals
@@ -143,11 +142,6 @@ def RobotIO(
         cs_29.next = cs_n[29]
         cs_30.next = cs_n[30]
         cs_31.next = cs_n[31]
-
-    # Chip-wide reset
-    @always(clk25.posedge)
-    def driveReset():
-        rst_n.next = cs_0
 
     # Gumstix SPI
     GumstixSPI_inst = GumstixSPI(sspi_miso, sspi_mosi, sspi_clk, sspi_cs,
@@ -274,29 +268,25 @@ def RobotIO(
                     value_for_master.next[64:] = 0xDEADBEEFBAADF00D
 
     # Master writes: 0x81 <= key <= 0xFF
-    @always(clk25.posedge, rst_n.negedge)
+    # Not sensitive to rst_n as it is driven therein.
+    @always(clk25.posedge)
     def GumstixWrite():
-        if rst_n == LOW:
-            cs_n.next = intbv(0xFFFFFFFF)[32:]
-        else:
-            if master_write_n == LOW:
-                # Reset
-                if key == 0x81:
-                    cs_n.next = intbv(0xFFFFFFFF)[32:]
-                    cs_n[0].next = 0
+        cs_n.next = intbv(0xFFFFFFFF)[32:]
+        rst_n.next = HIGH
 
-                # Motors
-                elif 0x91 <= key and key <= 0x98:
-                    gs_rxdata.next[16:] = value_from_master[16:]
+        if master_write_n == LOW:
+            # Reset
+            if key == 0x81:
+                rst_n.next = LOW
 
-                    cs_n.next = intbv(0xFFFFFFFF)[32:]
-                    cs_n[int(key) - 0x80].next = 0
+            # Motors
+            elif 0x91 <= key and key <= 0x98:
+                gs_rxdata.next[16:] = value_from_master[16:]
+                cs_n[int(key) - 0x80].next = 0
 
-                # Servos
-                elif 0xA1 <= key and key <= 0xA8:
-                    gs_rxdata.next[16:] = value_from_master[16:]
-
-                    cs_n.next = intbv(0xFFFFFFFF)[32:]
-                    cs_n[int(key) - 0x80].next = 0
+            # Servos
+            elif 0xA1 <= key and key <= 0xA8:
+                gs_rxdata.next[16:] = value_from_master[16:]
+                cs_n[int(key) - 0x80].next = 0
 
     return instances()
