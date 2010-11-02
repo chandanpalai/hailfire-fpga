@@ -2,16 +2,8 @@ import unittest
 
 from myhdl import Signal, intbv, traceSignals, Simulation, delay, always
 
-from ServoDriver import ServoDriver, LOW, HIGH
-
-def ClkGen(clk):
-    """ 25 MHz clock generator.
-    clk -- clock signal
-    """
-    @always(delay(1)) # each delay unit simulates 0.02 us (half-period)
-    def genClk():
-        clk.next = not clk
-    return genClk
+from ServoDriver import ServoDriver
+from TestUtils import ClkGen, LOW, HIGH
 
 def TestBench(ServoTester):
     """ Instanciate modules and wire things up.

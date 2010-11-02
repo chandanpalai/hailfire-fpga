@@ -1,26 +1,27 @@
 import unittest
 from random import randrange
 
-from myhdl import Signal, intbv, traceSignals, Simulation, join, delay, downrange
+from myhdl import Signal, Simulation, intbv, join
 
-from SPISlave import SPISlave, ACTIVE_n, INACTIVE_n
+from SPISlave import SPISlave
+from TestUtils import spi_transfer, LOW, HIGH
 
-n = 16
-NR_TESTS = 100
+n = 8
+NR_TESTS = 10
 
 def TestBench(SPITester, n):
 
-    miso = Signal(bool(0))
-    mosi = Signal(bool(0))
-    sclk = Signal(bool(0))
-    ss_n = Signal(INACTIVE_n)
-    txrdy = Signal(bool(0))
-    rxrdy = Signal(bool(0))
-    rst_n = Signal(INACTIVE_n)
+    miso = Signal(LOW)
+    mosi = Signal(LOW)
+    sclk = Signal(LOW)
+    ss_n = Signal(HIGH)
+    txrdy = Signal(LOW)
+    rxrdy = Signal(LOW)
+    rst_n = Signal(HIGH)
     txdata = Signal(intbv(0)[n:])
     rxdata = Signal(intbv(0)[n:])
 
-    SPISlave_inst = traceSignals(SPISlave,
+    SPISlave_inst = SPISlave(
         miso, mosi, sclk, ss_n,
         txdata, txrdy, rxdata, rxrdy, rst_n, n=n)
 
@@ -36,30 +37,44 @@ class TestSPISlave(unittest.TestCase):
                  txdata, txrdy, rxdata, rxrdy,
                  rst_n, n):
 
-        def stimulus(data):
-            yield delay(50)
-            ss_n.next = ACTIVE_n
-            yield delay(10)
-            for i in downrange(n):
-                sclk.next = 1
-                mosi.next = data[i]
-                yield delay(10)
-                sclk.next = 0
-                yield delay(10)
-            ss_n.next = INACTIVE_n
-
-        def check(data):
+        def check():
             yield rxrdy
-            self.assertEqual(rxdata, data)
+            print 'master sent:', hex(self.master_to_slave)
+            print 'slave read:', hex(rxdata)
+            self.assertEqual(rxdata, self.master_to_slave)
 
         for i in range(NR_TESTS):
-            data = intbv(randrange(2**n))
-            yield join(stimulus(data), check(data))
+            print "\nmaster write test"
+            self.master_to_slave = intbv(randrange(2**n))[n:]
+            self.slave_to_master = intbv(0)[n:]
+            yield join(spi_transfer(miso, mosi, sclk, ss_n, self.master_to_slave, self.slave_to_master), check())
+
+    def TXTester(self, miso, mosi, sclk, ss_n,
+                 txdata, txrdy, rxdata, rxrdy,
+                 rst_n, n):
+
+        def check():
+            yield rxrdy
+            print 'slave sent:', hex(txdata)
+            print 'master read:', hex(self.slave_to_master)
+            self.assertEqual(self.slave_to_master, txdata)
+
+        for i in range(NR_TESTS):
+            print "\nmaster read test"
+            txdata.next = intbv(randrange(2**n))
+            self.master_to_slave = intbv(0)[n:]
+            self.slave_to_master = intbv(0)[n:]
+            yield join(spi_transfer(miso, mosi, sclk, ss_n, self.master_to_slave, self.slave_to_master), check())
 
     def testRX(self):
         """ Test RX path of SPI Slave """
         sim = Simulation(TestBench(self.RXTester, n))
-        sim.run(quiet=1)
+        sim.run()
+
+    def testTX(self):
+        """ Test TX path of SPI Slave """
+        sim = Simulation(TestBench(self.TXTester, n))
+        sim.run()
 
 if __name__ == '__main__':
     unittest.main()
