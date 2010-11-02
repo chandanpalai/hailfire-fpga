@@ -6,6 +6,7 @@ test:
 
 clean:
 	make -C src clean
+	rm -f *.pin
 	rm -f *.done
 	rm -f *.rpt
 	rm -f *.summary
