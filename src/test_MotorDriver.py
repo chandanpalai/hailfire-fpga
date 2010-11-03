@@ -1,6 +1,6 @@
 import unittest
 
-from myhdl import Signal, Simulation, delay, intbv, join, traceSignals
+from myhdl import Signal, Simulation, delay, intbv, join
 from random import randrange
 from MotorDriver import MotorDriver
 from TestUtils import ClkGen, count_high, LOW, HIGH
@@ -23,7 +23,7 @@ def TestBench(MotorTester):
     rst_n = Signal(HIGH)
 
     # instanciate modules
-    MotorDriver_inst = traceSignals(MotorDriver,
+    MotorDriver_inst = MotorDriver(
         pwm, dir, en_n, clk, consign, cs_n, rst_n)
     MotorTester_inst = MotorTester(
         pwm, dir, en_n, clk, consign, cs_n, rst_n)
