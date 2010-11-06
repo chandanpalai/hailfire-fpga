@@ -1,9 +1,9 @@
 import unittest
 
-from myhdl import Signal, Simulation, StopSimulation, always, concat, delay, downrange, intbv, join, traceSignals
+from myhdl import Signal, Simulation, StopSimulation, always, concat, delay, downrange, intbv, join
 from random import randrange
 from RobotIO import RobotIO
-from TestUtils import ClkGen, quadrature_encode, spi_transfer, LOW, HIGH
+from TestUtils import ClkGen, count_high, quadrature_encode, spi_transfer, LOW, HIGH
 
 def TestBench(RobotIOTester):
 
@@ -134,7 +134,7 @@ def TestBench(RobotIOTester):
     ext7_7     = Signal(LOW)
 
     # Instanciate module under test
-    RobotIO_inst = traceSignals(RobotIO,
+    RobotIO_inst = RobotIO(
         clk25,
         sspi_clk, sspi_cs, sspi_miso, sspi_mosi,
         rc1_cha, rc1_chb,
@@ -218,6 +218,10 @@ class TestRobotIO(unittest.TestCase):
                  ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7,
                  ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
                  ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7):
+
+        #
+        # Ext ports
+        #
 
         def set_ext_lines(data, l0, l1, l2, l3, l4, l5, l6, l7):
             """ Pull l[0-7] lines high or low to match bits [0-7] of data """
@@ -318,6 +322,11 @@ class TestRobotIO(unittest.TestCase):
             # Read ext ports together
             yield read_ext_ports(ext_port_config)
 
+
+        #
+        # Odometers
+        #
+
         def set_rc_lines(forward_steps, backward_steps, rc_a, rc_b):
             yield quadrature_encode(forward_steps, rc_a, rc_b)
             yield quadrature_encode(backward_steps, rc_b, rc_a)
@@ -396,8 +405,181 @@ class TestRobotIO(unittest.TestCase):
             # Read rc ports together
             yield read_rc_ports(expected_datas)
 
+
+        #
+        # Motors
+        #
+
+        def get_write_motor_command(number, consign):
+            """ Return an intbv suitable to be sent to the slave to set motor[number] consign """
+            ret = intbv(0)[32:]
+            ret[32:24] = 0x90 + number  # set motor consign (1 to 8)
+            ret[24:16] = 2              # send 2 bytes
+            ret[16:] = consign          # the value is the new consign
+            return ret
+
+        def set_motor_consign(number, consign):
+            """ Set motor[number] consign """
+            print 'set motor:', number, '...',
+            master_to_slave = get_write_motor_command(number, consign)
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            print 'done'
+
+        def set_motors_consigns(consigns):
+            """ Set all motors consigns in one SPI transfer """
+            print 'set all motors'
+            master_to_slave = get_write_motor_command(8, consigns[8])
+            for i in downrange(8, 1):
+                master_to_slave = concat(master_to_slave, get_write_motor_command(i, consigns[i]))
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            print 'done'
+
+        def check_motor_duty_cycle(number, consign):
+            """ Checks that the duty cycle of the motor[number] really corresponds to consign[10:] """
+            print 'check motor', number
+            lines = [None, mot1_pwm, mot2_pwm, mot3_pwm, mot4_pwm, mot5_pwm, mot6_pwm, mot7_pwm, mot8_pwm]
+            count = intbv(0)
+
+            # First period is not correct as the counter had already started
+            # before the consign was given. Start testing at the second period
+            yield lines[number].negedge # wait for end of PWM waveform of the first period
+            yield lines[number].posedge # wait for the beginning of the period
+
+            yield count_high(lines[number], clk25, count)
+            self.assertEquals(count, consign[10:])
+
+        def test_motors():
+            # Generate random consigns for motors
+            consigns = [intbv(randrange(2**10))[16:] for i in range(9)]
+
+            # Set motor consigns one at a time
+            for i in range(1, 9):
+                yield set_motor_consign(i, consigns[i])
+
+            # Check actual duty cycles
+            yield join(check_motor_duty_cycle(1, consigns[1]),
+                       check_motor_duty_cycle(2, consigns[2]),
+                       check_motor_duty_cycle(3, consigns[3]),
+                       check_motor_duty_cycle(4, consigns[4]),
+                       check_motor_duty_cycle(5, consigns[5]),
+                       check_motor_duty_cycle(6, consigns[6]),
+                       check_motor_duty_cycle(7, consigns[7]),
+                       check_motor_duty_cycle(8, consigns[8]))
+
+            # Regen random consigns
+            consigns = [intbv(randrange(2**10))[16:] for i in range(9)]
+
+            # Set all motor consigns together
+            yield set_motors_consigns(consigns)
+
+            # Check actual duty cycles
+            yield join(check_motor_duty_cycle(1, consigns[1]),
+                       check_motor_duty_cycle(2, consigns[2]),
+                       check_motor_duty_cycle(3, consigns[3]),
+                       check_motor_duty_cycle(4, consigns[4]),
+                       check_motor_duty_cycle(5, consigns[5]),
+                       check_motor_duty_cycle(6, consigns[6]),
+                       check_motor_duty_cycle(7, consigns[7]),
+                       check_motor_duty_cycle(8, consigns[8]))
+
+
+        #
+        # Servos
+        #
+
+        def get_write_servo_command(number, consign):
+            """ Return an intbv suitable to be sent to the slave to set servo[number] consign """
+            ret = intbv(0)[32:]
+            ret[32:24] = 0xA0 + number  # set servo consign (1 to 8)
+            ret[24:16] = 2              # send 2 bytes
+            ret[16:] = consign          # the value is the new consign
+            return ret
+
+        def set_servo_consign(number, consign):
+            """ Set servo[number] consign """
+            print 'set servo:', number, '...',
+            master_to_slave = get_write_servo_command(number, consign)
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            print 'done'
+
+        def set_servos_consigns(consigns):
+            """ Set all servos consigns in one SPI transfer """
+            print 'set all servos'
+            master_to_slave = get_write_servo_command(8, consigns[8])
+            for i in downrange(8, 1):
+                master_to_slave = concat(master_to_slave, get_write_servo_command(i, consigns[i]))
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            print 'done'
+
+        def check_servo_duty_cycle(number, consign):
+            """ Checks that the duty cycle of the servo[number] really corresponds to consign """
+            print 'check servo', number, 'beginning'
+            lines = [None, pwm1_ch0, pwm1_ch1, pwm1_ch2, pwm1_ch3, pwm1_ch4, pwm1_ch5, pwm1_ch6, pwm1_ch7]
+            count = intbv(0)
+
+            # First period is not correct as the counter had already started
+            # before the consign was given. Start testing at the second period
+            yield lines[number].negedge # wait for end of PWM waveform of the first period
+            print 'check servo', number, 'wait for the beginning of the period'
+            yield lines[number].posedge # wait for the beginning of the period
+            print 'check servo', number, 'count highs'
+
+            yield count_high(lines[number], clk25, count)
+            self.assertEquals(count, consign)
+            print 'check servo', number, 'done'
+
+        def test_servos():
+            # Generate random consigns for servos
+            # respect min/max useful consigns
+            consigns = [intbv(randrange(12500, 62500))[16:] for i in range(9)]
+
+            # Set servo consigns one at a time
+            for i in range(1, 9):
+                yield set_servo_consign(i, consigns[i])
+
+            # Check actual duty cycles
+            yield join(check_servo_duty_cycle(1, consigns[1]),
+                       check_servo_duty_cycle(2, consigns[2]),
+                       check_servo_duty_cycle(3, consigns[3]),
+                       check_servo_duty_cycle(4, consigns[4]),
+                       check_servo_duty_cycle(5, consigns[5]),
+                       check_servo_duty_cycle(6, consigns[6]),
+                       check_servo_duty_cycle(7, consigns[7]),
+                       check_servo_duty_cycle(8, consigns[8]))
+
+            # Regen random consigns
+            # respect min/max useful consigns
+            consigns = [intbv(randrange(12500, 62500))[16:] for i in range(9)]
+
+            # Set all servo consigns together
+            yield set_servos_consigns(consigns)
+
+            # Check actual duty cycles
+            yield join(check_servo_duty_cycle(1, consigns[1]),
+                       check_servo_duty_cycle(2, consigns[2]),
+                       check_servo_duty_cycle(3, consigns[3]),
+                       check_servo_duty_cycle(4, consigns[4]),
+                       check_servo_duty_cycle(5, consigns[5]),
+                       check_servo_duty_cycle(6, consigns[6]),
+                       check_servo_duty_cycle(7, consigns[7]),
+                       check_servo_duty_cycle(8, consigns[8]))
+
+
+        #
+        # Tests
+        #
+
         yield test_ext_ports()
         yield test_rc_ports()
+        yield test_motors()
+        if False:
+            yield test_servos()
+        else:
+            print "Skipping servo tests"
 
         raise StopSimulation();
 

@@ -282,11 +282,11 @@ def RobotIO(
             # Motors
             elif 0x91 <= key and key <= 0x98:
                 gs_rxdata.next[16:] = value_from_master[16:]
-                cs_n[int(key) - 0x80].next = 0
+                cs_n.next[int(key) - 0x86] = 0 # 11 to 18
 
             # Servos
             elif 0xA1 <= key and key <= 0xA8:
                 gs_rxdata.next[16:] = value_from_master[16:]
-                cs_n[int(key) - 0x80].next = 0
+                cs_n.next[int(key) - 0x8C] = 0 # 21 to 28
 
     return instances()
