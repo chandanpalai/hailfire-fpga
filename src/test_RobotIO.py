@@ -1,9 +1,9 @@
 import unittest
 
-from myhdl import Signal, Simulation, always, concat, delay, downrange, intbv, traceSignals
+from myhdl import Signal, Simulation, always, concat, delay, downrange, intbv, join, traceSignals
 from random import randrange
 from RobotIO import RobotIO
-from TestUtils import ClkGen, spi_transfer, LOW, HIGH
+from TestUtils import ClkGen, quadrature_encode, spi_transfer, LOW, HIGH
 
 def TestBench(RobotIOTester):
 
@@ -11,7 +11,7 @@ def TestBench(RobotIOTester):
     clk25      = Signal(LOW)
 
     sspi_clk   = Signal(LOW)
-    sspi_cs    = Signal(LOW)
+    sspi_cs    = Signal(HIGH)
     sspi_miso  = Signal(LOW)
     sspi_mosi  = Signal(LOW)
 
@@ -57,7 +57,7 @@ def TestBench(RobotIOTester):
     mot8_pwm   = Signal(LOW)
 
     adc1_clk   = Signal(LOW)
-    adc1_cs    = Signal(LOW)
+    adc1_cs    = Signal(HIGH)
     adc1_miso  = Signal(LOW)
     adc1_mosi  = Signal(LOW)
 
@@ -219,7 +219,7 @@ class TestRobotIO(unittest.TestCase):
                  ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
                  ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7):
 
-        def set_lines(data, l0, l1, l2, l3, l4, l5, l6, l7):
+        def set_ext_lines(data, l0, l1, l2, l3, l4, l5, l6, l7):
             """ Pull l[0-7] lines high or low to match bits [0-7] of data """
             l0.next = data[0]
             l1.next = data[1]
@@ -233,37 +233,37 @@ class TestRobotIO(unittest.TestCase):
         def set_ext1_port(data):
             """ Pull ext1_[0-7] lines high or low to match bits [0-7] of data """
             print 'set ext1 port'
-            set_lines(data, ext1_0, ext1_1, ext1_2, ext1_3, ext1_4, ext1_5, ext1_6, ext1_7)
+            set_ext_lines(data, ext1_0, ext1_1, ext1_2, ext1_3, ext1_4, ext1_5, ext1_6, ext1_7)
 
         def set_ext2_port(data):
             """ Pull ext2_[0-7] lines high or low to match bits [0-7] of data """
             print 'set ext2 port'
-            set_lines(data, ext2_0, ext2_1, ext2_2, ext2_3, ext2_4, ext2_5, ext2_6, ext2_7)
+            set_ext_lines(data, ext2_0, ext2_1, ext2_2, ext2_3, ext2_4, ext2_5, ext2_6, ext2_7)
 
         def set_ext3_port(data):
             """ Pull ext3_[0-7] lines high or low to match bits [0-7] of data """
             print 'set ext3 port'
-            set_lines(data, ext3_0, ext3_1, ext3_2, ext3_3, ext3_4, ext3_5, ext3_6, ext3_7)
+            set_ext_lines(data, ext3_0, ext3_1, ext3_2, ext3_3, ext3_4, ext3_5, ext3_6, ext3_7)
 
         def set_ext4_port(data):
             """ Pull ext4_[0-7] lines high or low to match bits [0-7] of data """
             print 'set ext4 port'
-            set_lines(data, ext4_0, ext4_1, ext4_2, ext4_3, ext4_4, ext4_5, ext4_6, ext4_7)
+            set_ext_lines(data, ext4_0, ext4_1, ext4_2, ext4_3, ext4_4, ext4_5, ext4_6, ext4_7)
 
         def set_ext5_port(data):
             """ Pull ext5_[0-7] lines high or low to match bits [0-7] of data """
             print 'set ext5 port'
-            set_lines(data, ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7)
+            set_ext_lines(data, ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7)
 
         def set_ext6_port(data):
             """ Pull ext6_[0-7] lines high or low to match bits [0-7] of data """
             print 'set ext6 port'
-            set_lines(data, ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7)
+            set_ext_lines(data, ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7)
 
         def set_ext7_port(data):
             """ Pull ext7_[0-7] lines high or low to match bits [0-7] of data """
             print 'set ext7 port'
-            set_lines(data, ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7)
+            set_ext_lines(data, ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7)
 
         def set_ext_ports(datas):
             """ Pull ext[1-7]_[0-7] lines high or low to match bits [0-7] of datas [1-7] """
@@ -306,7 +306,7 @@ class TestRobotIO(unittest.TestCase):
 
         def test_ext_ports():
             # Generate random inputs for ext ports
-            ext_port_config = [intbv(randrange(0xFF)) for i in range(0, 8) ]
+            ext_port_config = [intbv(randrange(0xFF)) for i in range(8) ]
 
             # Set up ext ports
             set_ext_ports(ext_port_config)
@@ -318,12 +318,91 @@ class TestRobotIO(unittest.TestCase):
             # Read ext ports together
             yield read_ext_ports(ext_port_config)
 
+        def set_rc_lines(forward_steps, backward_steps, rc_a, rc_b):
+            yield quadrature_encode(forward_steps, rc_a, rc_b)
+            yield quadrature_encode(backward_steps, rc_b, rc_a)
+
+        def set_rc1_port(forward_steps, backward_steps):
+            """ Make rc1 roll 'forward_steps' forwards and 'backward_steps' backwards """
+            print 'roll rc1', forward_steps, 'forwards and', backward_steps, 'backwards'
+            yield set_rc_lines(forward_steps, backward_steps, rc1_cha, rc1_chb)
+
+        def set_rc2_port(forward_steps, backward_steps):
+            """ Make rc2 roll 'forward_steps' forwards and 'backward_steps' backwards """
+            print 'roll rc2', forward_steps, 'forwards and', backward_steps, 'backwards'
+            yield set_rc_lines(forward_steps, backward_steps, rc2_cha, rc2_chb)
+
+        def set_rc3_port(forward_steps, backward_steps):
+            """ Make rc3 roll 'forward_steps' forwards and 'backward_steps' backwards """
+            print 'roll rc3', forward_steps, 'forwards and', backward_steps, 'backwards'
+            yield set_rc_lines(forward_steps, backward_steps, rc3_cha, rc3_chb)
+
+        def set_rc4_port(forward_steps, backward_steps):
+            """ Make rc4 roll 'forward_steps' forwards and 'backward_steps' backwards """
+            print 'roll rc4', forward_steps, 'forwards and', backward_steps, 'backwards'
+            yield set_rc_lines(forward_steps, backward_steps, rc4_cha, rc4_chb)
+
+        def set_rc_ports(forward_steps_array, backward_steps_array):
+            """ Make all rc roll """
+            print 'roll all rc'
+            yield join(set_rc1_port(forward_steps_array[1], backward_steps_array[1]),
+                       set_rc2_port(forward_steps_array[2], backward_steps_array[2]),
+                       set_rc3_port(forward_steps_array[3], backward_steps_array[3]),
+                       set_rc4_port(forward_steps_array[4], backward_steps_array[4]))
+
+        def get_read_rc_port_command(number):
+            """ Return an intbv suitable to be sent to the slave to read rc[number] port """
+            ret = intbv(0)[32:]
+            ret[32:24] = 0x10 + number  # read rc port (1 to 4)
+            ret[24:16] = 2              # expect 2 bytes
+            return ret
+
+        def read_rc_port(number, expected_data):
+            """ Read rc[number] port and compare the result byte to expected_data """
+            print 'read rc port nb:', number, '...',
+            master_to_slave = get_read_rc_port_command(number)
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            self.assertEquals(slave_to_master[16:], expected_data)
+            print 'done'
+
+        def read_rc_ports(expected_datas):
+            """ Read all rc ports in one SPI transfer and compare the result bytes to expected_datas """
+            print 'read all rc ports at once...',
+            master_to_slave = get_read_rc_port_command(4)
+            for i in downrange(4, 1):
+                master_to_slave = concat(master_to_slave, get_read_rc_port_command(i))
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            for i in downrange(5, 1):
+                self.assertEquals(slave_to_master[i*32-16:(i-1)*32], expected_datas[i])
+            print 'done'
+
+        def test_rc_ports():
+            # Generate random inputs for rc ports
+            rc_port_forwards  = [intbv(randrange(0xFF)) for i in range(5)]
+            rc_port_backwards = [intbv(randrange(0xFF)) for i in range(5)]
+
+            # Set up rc ports
+            yield set_rc_ports(rc_port_forwards, rc_port_backwards)
+
+            # Expected results
+            expected_datas = [intbv(rc_port_forwards[i] - rc_port_backwards[i])[16:] for i in range(5)]
+
+            # Read rc ports separately
+            for i in range(1, 5):
+                yield read_rc_port(i, expected_datas[i])
+
+            # Read rc ports together
+            yield read_rc_ports(expected_datas)
+
         yield test_ext_ports()
+        yield test_rc_ports()
 
     def testRobotIO(self):
         """ Test RobotIO """
         sim = Simulation(TestBench(self.RobotIOTester))
-        sim.run(8000)
+        sim.run(16000)
 
 if __name__ == '__main__':
     unittest.main()

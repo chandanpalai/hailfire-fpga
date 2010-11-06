@@ -1,8 +1,9 @@
 import unittest
 
-from myhdl import Signal, Simulation, delay, intbv, join
+from myhdl import Signal, Simulation, delay, intbv, join, traceSignals
 from OdometerReader import OdometerReader
-from TestUtils import ClkGen, LOW, HIGH
+from random import randrange
+from TestUtils import ClkGen, quadrature_encode, LOW, HIGH
 
 def TestBench(OdometerTester):
     """ Instanciate modules and wire things up.
@@ -17,7 +18,7 @@ def TestBench(OdometerTester):
     rst_n = Signal(HIGH)
 
     # instanciate modules
-    OdometerReader_inst = OdometerReader(count, a, b, clk, rst_n)
+    OdometerReader_inst = traceSignals(OdometerReader, count, a, b, clk, rst_n)
     OdometerTester_inst = OdometerTester(count, a, b, clk, rst_n)
     ClkGen_inst = ClkGen(clk)
 
@@ -26,48 +27,70 @@ def TestBench(OdometerTester):
 class TestOdometerReader(unittest.TestCase):
 
     def OdometerTester(self, count, a, b, clk, rst_n):
-        def moveForward(count, a, b, clk, rst_n):
-            for i in range(4):
-                a.next = not a
-                yield delay(10)
-                b.next = not b
-                yield delay(10)
-
-        def keepStill(count, a, b, clk, rst_n):
-            for i in range(80):
-                yield delay(1)
-
-        def moveBackward(count, a, b, clk, rst_n):
-            for i in range(4):
-                b.next = not b
-                yield delay(10)
-                a.next = not a
-                yield delay(10)
 
         self.assertEquals(count, 0)
+        yield delay(100) # readability in gtkwave
 
-        yield moveForward(count, a, b, clk, rst_n)  # 0 to 8
-        self.assertEquals(count, 8)
+        # forward
+        forward_steps = intbv(randrange(0xFF))
+        print 'forward', forward_steps, 'steps'
+        yield quadrature_encode(forward_steps, a, b)
+        self.assertEquals(count, forward_steps)
+        yield delay(100) # readability in gtkwave
 
-        yield keepStill(count, a, b, clk, rst_n)    # 8
-        self.assertEquals(count, 8)
+        # backward
+        backward_steps = intbv(randrange(0xFF))
+        print 'backward', backward_steps, 'steps'
+        yield quadrature_encode(backward_steps, b, a)
+        self.assertEquals(count, intbv(forward_steps - backward_steps)[16:])
+        yield delay(100) # readability in gtkwave
 
-        yield moveBackward(count, a, b, clk, rst_n) # 8 to 0
+        # to 0
+        steps_to_zero = intbv(backward_steps - forward_steps)
+        if steps_to_zero >= 0:
+            # forwards to 0
+            print 'forward', steps_to_zero, 'steps'
+            yield quadrature_encode(steps_to_zero, a, b)
+        else:
+            # backwards to 0
+            steps_to_zero = intbv(-steps_to_zero)
+            print 'backward', steps_to_zero, 'steps'
+            yield quadrature_encode(steps_to_zero, b, a)
         self.assertEquals(count, 0)
+        yield delay(100) # readability in gtkwave
 
-        yield moveBackward(count, a, b, clk, rst_n) # 0 to -8 = 0xFFF8
-        self.assertEquals(count, 0xFFF8)
+        # backward
+        backward_steps = intbv(randrange(0xFF))
+        print 'backward', backward_steps, 'steps'
+        yield quadrature_encode(backward_steps, b, a)
+        self.assertEquals(count, intbv(-backward_steps)[16:])
+        yield delay(100) # readability in gtkwave
 
-        yield keepStill(count, a, b, clk, rst_n)    # 0xFFF8
-        self.assertEquals(count, 0xFFF8)
+        # forward
+        forward_steps = intbv(randrange(0xFF))
+        print 'forward', forward_steps, 'steps'
+        yield quadrature_encode(forward_steps, a, b)
+        self.assertEquals(count, intbv(forward_steps - backward_steps)[16:])
+        yield delay(100) # readability in gtkwave
 
-        yield moveForward(count, a, b, clk, rst_n)  # 0xFFF8 to 0
+        # to 0
+        steps_to_zero = intbv(backward_steps - forward_steps)
+        if steps_to_zero >= 0:
+            # forwards to 0
+            print 'forward', steps_to_zero, 'steps'
+            yield quadrature_encode(steps_to_zero, a, b)
+        else:
+            # backwards to 0
+            steps_to_zero = intbv(-steps_to_zero)
+            print 'backward', steps_to_zero, 'steps'
+            yield quadrature_encode(steps_to_zero, b, a)
         self.assertEquals(count, 0)
+        yield delay(100) # readability in gtkwave
 
     def testOdometerReader(self):
         """ Ensures that count works as espected """
         sim = Simulation(TestBench(self.OdometerTester))
-        sim.run(500)
+        sim.run(11000) # for the worst case
 
 if __name__ == '__main__':
     unittest.main()

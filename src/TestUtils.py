@@ -62,3 +62,21 @@ def count_high(line, clk, count):
     while line == HIGH:
         count += 1
         yield clk.posedge
+
+def quadrature_encode(steps, ch_a, ch_b):
+    # - A rises before B:
+    #  * if A is low, rise A
+    #  * if A is already high, rise B
+    # - A falls before B:
+    #  * if A is high, lower A
+    #  * if A is already low, lower B
+    for i in range(steps):
+        if ch_a == LOW and ch_b == LOW:
+            ch_a.next = HIGH
+        elif ch_a == HIGH and ch_b == LOW:
+            ch_b.next = HIGH
+        elif ch_a == HIGH and ch_b == HIGH:
+            ch_a.next = LOW
+        elif ch_a == LOW and ch_b == HIGH:
+            ch_b.next = LOW
+        yield delay(10)
