@@ -1,6 +1,6 @@
 import unittest
 
-from myhdl import Signal, Simulation, delay, intbv, join, traceSignals
+from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join, traceSignals
 from OdometerReader import OdometerReader
 from random import randrange
 from TestUtils import ClkGen, quadrature_encode, LOW, HIGH
@@ -87,10 +87,12 @@ class TestOdometerReader(unittest.TestCase):
         self.assertEquals(count, 0)
         yield delay(100) # readability in gtkwave
 
+        raise StopSimulation()
+
     def testOdometerReader(self):
         """ Ensures that count works as espected """
         sim = Simulation(TestBench(self.OdometerTester))
-        sim.run(11000) # for the worst case
+        sim.run()
 
 if __name__ == '__main__':
     unittest.main()

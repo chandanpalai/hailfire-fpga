@@ -1,6 +1,6 @@
 import unittest
 
-from myhdl import Signal, Simulation, always, concat, delay, downrange, intbv, join, traceSignals
+from myhdl import Signal, Simulation, StopSimulation, always, concat, delay, downrange, intbv, join, traceSignals
 from random import randrange
 from RobotIO import RobotIO
 from TestUtils import ClkGen, quadrature_encode, spi_transfer, LOW, HIGH
@@ -399,10 +399,12 @@ class TestRobotIO(unittest.TestCase):
         yield test_ext_ports()
         yield test_rc_ports()
 
+        raise StopSimulation();
+
     def testRobotIO(self):
         """ Test RobotIO """
         sim = Simulation(TestBench(self.RobotIOTester))
-        sim.run(16000)
+        sim.run()
 
 if __name__ == '__main__':
     unittest.main()

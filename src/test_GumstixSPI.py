@@ -1,7 +1,7 @@
 import unittest
 from random import randrange
 
-from myhdl import Signal, intbv, traceSignals, Simulation, join, delay, downrange, concat, always
+from myhdl import Signal, intbv, traceSignals, Simulation, StopSimulation, join, delay, downrange, concat, always
 
 from GumstixSPI import GumstixSPI
 from TestUtils import ClkGen, random_write, random_read, spi_transfer, LOW, HIGH
@@ -110,9 +110,11 @@ class TestGumstixSPI(unittest.TestCase):
             yield join(spi_transfer(miso, mosi, sclk, ss_n, self.master_to_slave, self.slave_to_master), check_read())
             print 'slave responded:', hex(self.slave_to_master)
 
+        raise StopSimulation()
+
     def testGumstixSPI(self):
         sim = Simulation(TestBench(self.Tester))
-        sim.run(45000) # used Gtkwave
+        sim.run()
 
 if __name__ == '__main__':
     unittest.main()

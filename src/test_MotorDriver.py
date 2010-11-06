@@ -1,6 +1,6 @@
 import unittest
 
-from myhdl import Signal, Simulation, delay, intbv, join
+from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join
 from random import randrange
 from MotorDriver import MotorDriver
 from TestUtils import ClkGen, count_high, LOW, HIGH
@@ -62,10 +62,12 @@ class TestMotorDriver(unittest.TestCase):
                 yield pwm.posedge # wait for the beginning of the period
                 yield check(dcl) # check the number of 'high's in this period
 
+        raise StopSimulation()
+
     def testMotorDriver(self):
         """ Test MotorDriver """
         sim = Simulation(TestBench(self.MotorTester))
-        sim.run(2048 * NR_PERIODS_PER_TEST * NR_TESTS)
+        sim.run()
 
 if __name__ == '__main__':
     unittest.main()
