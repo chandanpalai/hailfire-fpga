@@ -18,7 +18,7 @@
 #
 # Quartus II
 # Version 10.0 Build 262 08/18/2010 Service Pack 1 SJ Web Edition
-# Date created = 15:32:26  November 07, 2010
+# Date created = 18:32:09  November 07, 2010
 #
 # -------------------------------------------------------------------------- #
 #
@@ -155,6 +155,10 @@ set_location_assignment PIN_103 -to led_yellow_n
 set_location_assignment PIN_104 -to led_green_n
 set_location_assignment PIN_160 -to led_red_n
 set_location_assignment PIN_23 -to clk25
+set_location_assignment PIN_151 -to sram_ce_n
+set_instance_assignment -name RESERVE_PIN "AS OUTPUT DRIVING VCC" -to sram_ce_n
+set_location_assignment PIN_152 -to sram_oe_n
+set_instance_assignment -name RESERVE_PIN "AS OUTPUT DRIVING VCC" -to sram_oe_n
 
 # Classic Timing Assignments
 # ==========================
