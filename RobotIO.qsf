@@ -18,7 +18,7 @@
 #
 # Quartus II
 # Version 10.0 Build 262 08/18/2010 Service Pack 1 SJ Web Edition
-# Date created = 15:25:22  November 07, 2010
+# Date created = 15:32:26  November 07, 2010
 #
 # -------------------------------------------------------------------------- #
 #
@@ -178,6 +178,7 @@ set_global_assignment -name RESERVE_ASDO_AFTER_CONFIGURATION "AS INPUT TRI-STATE
 
 # Assembler Assignments
 # =====================
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
 
 # ---------------------
 # start ENTITY(RobotIO)
