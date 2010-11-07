@@ -18,7 +18,7 @@
 #
 # Quartus II
 # Version 10.0 Build 262 08/18/2010 Service Pack 1 SJ Web Edition
-# Date created = 14:48:17  November 07, 2010
+# Date created = 15:25:22  November 07, 2010
 #
 # -------------------------------------------------------------------------- #
 #
@@ -45,6 +45,117 @@ set_global_assignment -name LAST_QUARTUS_VERSION "10.0 SP1"
 set_global_assignment -name VHDL_FILE src/RobotIO.vhd
 set_global_assignment -name VHDL_FILE src/pck_myhdl_06.vhd
 
+# Pin & Location Assignments
+# ==========================
+set_location_assignment PIN_3 -to ext6_7
+set_location_assignment PIN_4 -to ext2_0
+set_location_assignment PIN_5 -to ext7_2
+set_location_assignment PIN_6 -to ext6_1
+set_location_assignment PIN_8 -to ext7_0
+set_location_assignment PIN_10 -to ext7_4
+set_location_assignment PIN_11 -to ext7_6
+set_location_assignment PIN_12 -to ext7_5
+set_location_assignment PIN_13 -to ext7_3
+set_location_assignment PIN_14 -to mot5_pwm
+set_location_assignment PIN_15 -to mot5_brake
+set_location_assignment PIN_30 -to ext7_7
+set_location_assignment PIN_31 -to ext7_1
+set_location_assignment PIN_33 -to mot5_dir
+set_location_assignment PIN_34 -to mot6_pwm
+set_location_assignment PIN_35 -to mot7_pwm
+set_location_assignment PIN_37 -to mot7_brake
+set_location_assignment PIN_39 -to mot8_dir
+set_location_assignment PIN_41 -to mot6_dir
+set_location_assignment PIN_43 -to mot6_brake
+set_location_assignment PIN_44 -to mot7_dir
+set_location_assignment PIN_45 -to mot8_pwm
+set_location_assignment PIN_46 -to mot8_brake
+set_location_assignment PIN_56 -to sspi_clk
+set_location_assignment PIN_57 -to sspi_mosi
+set_location_assignment PIN_58 -to sspi_miso
+set_location_assignment PIN_59 -to sspi_cs
+set_location_assignment PIN_63 -to adc1_mosi
+set_location_assignment PIN_64 -to adc1_cs
+set_location_assignment PIN_67 -to adc1_miso
+set_location_assignment PIN_68 -to rc1_cha
+set_location_assignment PIN_69 -to rc2_cha
+set_location_assignment PIN_70 -to rc3_cha
+set_location_assignment PIN_72 -to adc1_clk
+set_location_assignment PIN_74 -to rc4_cha
+set_location_assignment PIN_75 -to rc4_chb
+set_location_assignment PIN_76 -to rc2_chb
+set_location_assignment PIN_77 -to rc3_chb
+set_location_assignment PIN_80 -to rc1_chb
+set_location_assignment PIN_81 -to ext1_2
+set_location_assignment PIN_82 -to ext1_4
+set_location_assignment PIN_84 -to ext1_0
+set_location_assignment PIN_86 -to ext1_6
+set_location_assignment PIN_87 -to ext1_5
+set_location_assignment PIN_88 -to ext1_1
+set_location_assignment PIN_89 -to ext1_7
+set_location_assignment PIN_90 -to ext1_3
+set_location_assignment PIN_92 -to ext2_2
+set_location_assignment PIN_94 -to ext2_6
+set_location_assignment PIN_105 -to ext2_4
+set_location_assignment PIN_106 -to ext2_5
+set_location_assignment PIN_107 -to ext2_1
+set_location_assignment PIN_108 -to pwm1_ch4
+set_location_assignment PIN_110 -to ext2_7
+set_location_assignment PIN_112 -to ext2_3
+set_location_assignment PIN_113 -to pwm1_ch0
+set_location_assignment PIN_114 -to pwm1_ch2
+set_location_assignment PIN_115 -to pwm1_ch5
+set_location_assignment PIN_116 -to pwm1_ch3
+set_location_assignment PIN_117 -to mot1_pwm
+set_location_assignment PIN_118 -to mot1_brake
+set_location_assignment PIN_127 -to pwm1_ch6
+set_location_assignment PIN_128 -to pwm1_ch7
+set_location_assignment PIN_133 -to pwm1_ch1
+set_location_assignment PIN_134 -to mot1_dir
+set_location_assignment PIN_137 -to mot3_pwm
+set_location_assignment PIN_138 -to mot3_brake
+set_location_assignment PIN_139 -to mot4_dir
+set_location_assignment PIN_141 -to mot2_pwm
+set_location_assignment PIN_142 -to mot2_dir
+set_location_assignment PIN_143 -to mot2_brake
+set_location_assignment PIN_144 -to mot3_dir
+set_location_assignment PIN_146 -to mot4_pwm
+set_location_assignment PIN_147 -to mot4_brake
+set_location_assignment PIN_164 -to ext3_0
+set_location_assignment PIN_165 -to ext3_6
+set_location_assignment PIN_168 -to ext3_7
+set_location_assignment PIN_169 -to ext3_3
+set_location_assignment PIN_170 -to ext4_0
+set_location_assignment PIN_171 -to ext3_2
+set_location_assignment PIN_173 -to ext3_4
+set_location_assignment PIN_175 -to ext3_5
+set_location_assignment PIN_176 -to ext3_1
+set_location_assignment PIN_179 -to ext4_2
+set_location_assignment PIN_180 -to ext4_6
+set_location_assignment PIN_181 -to ext4_4
+set_location_assignment PIN_182 -to ext4_5
+set_location_assignment PIN_185 -to ext4_1
+set_location_assignment PIN_187 -to ext4_7
+set_location_assignment PIN_188 -to ext4_3
+set_location_assignment PIN_189 -to ext5_0
+set_location_assignment PIN_191 -to ext5_4
+set_location_assignment PIN_192 -to ext5_2
+set_location_assignment PIN_193 -to ext5_6
+set_location_assignment PIN_195 -to ext5_5
+set_location_assignment PIN_197 -to ext5_3
+set_location_assignment PIN_198 -to ext5_7
+set_location_assignment PIN_199 -to ext5_1
+set_location_assignment PIN_200 -to ext6_2
+set_location_assignment PIN_201 -to ext6_6
+set_location_assignment PIN_203 -to ext6_0
+set_location_assignment PIN_205 -to ext6_4
+set_location_assignment PIN_207 -to ext6_5
+set_location_assignment PIN_208 -to ext6_3
+set_location_assignment PIN_103 -to led_yellow_n
+set_location_assignment PIN_104 -to led_green_n
+set_location_assignment PIN_160 -to led_red_n
+set_location_assignment PIN_23 -to clk25
+
 # Classic Timing Assignments
 # ==========================
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
@@ -53,18 +164,20 @@ set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 # Analysis & Synthesis Assignments
 # ================================
 set_global_assignment -name FAMILY "Cyclone II"
-set_global_assignment -name TOP_LEVEL_ENTITY RobotIO
 set_global_assignment -name DEVICE_FILTER_PACKAGE PQFP
 set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 8
+set_global_assignment -name TOP_LEVEL_ENTITY RobotIO
 
 # Fitter Assignments
 # ==================
 set_global_assignment -name DEVICE EP2C8Q208C8
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_ASDO_AFTER_CONFIGURATION "AS INPUT TRI-STATED"
 
 # Assembler Assignments
 # =====================
-set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
 
 # ---------------------
 # start ENTITY(RobotIO)
