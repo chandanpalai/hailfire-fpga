@@ -23,7 +23,7 @@ def TestBench(MotorTester):
     rst_n = Signal(HIGH)
 
     # instanciate modules
-    MotorDriver_inst = MotorDriver(pwm, dir, en_n, clk, consign, cs_n, rst_n)
+    MotorDriver_inst = MotorDriver(pwm, dir, en_n, clk, consign, cs_n, rst_n, False)
     MotorTester_inst = MotorTester(pwm, dir, en_n, clk, consign, cs_n, rst_n)
     ClkGen_inst = ClkGen(clk)
 

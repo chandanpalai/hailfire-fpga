@@ -34,7 +34,8 @@ def RobotIO(
     ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7,
     ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
     ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7,
-    led_yellow_n, led_green_n, led_red_n
+    led_yellow_n, led_green_n, led_red_n,
+    optocoupled
     ):
     """ Main module for robot IO stack
 
@@ -54,6 +55,7 @@ def RobotIO(
     ext6_* -- Extension port 6 signals
     ext7_* -- Extension port 7 signals
     led_*_n -- Active-low LED signal
+    optocoupled -- motors and servos drivers account for optocouplers if this is set to True
 
     """
 
@@ -160,28 +162,26 @@ def RobotIO(
     Odometer4_inst = OdometerReader(rc4_count, rc4_cha, rc4_chb, clk25, rst_n)
 
     # DC Motors
-    # FIXME: lines should be inverted because of opto-isolators
-    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, gs_rxdata, cs_11, rst_n)
-    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, gs_rxdata, cs_12, rst_n)
-    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, gs_rxdata, cs_13, rst_n)
-    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, gs_rxdata, cs_14, rst_n)
-    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, gs_rxdata, cs_15, rst_n)
-    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, gs_rxdata, cs_16, rst_n)
-    Motor7_inst = MotorDriver(mot7_pwm, mot7_dir, mot7_brake, clk25, gs_rxdata, cs_17, rst_n)
-    Motor8_inst = MotorDriver(mot8_pwm, mot8_dir, mot8_brake, clk25, gs_rxdata, cs_18, rst_n)
+    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, gs_rxdata, cs_11, rst_n, optocoupled)
+    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, gs_rxdata, cs_12, rst_n, optocoupled)
+    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, gs_rxdata, cs_13, rst_n, optocoupled)
+    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, gs_rxdata, cs_14, rst_n, optocoupled)
+    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, gs_rxdata, cs_15, rst_n, optocoupled)
+    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, gs_rxdata, cs_16, rst_n, optocoupled)
+    Motor7_inst = MotorDriver(mot7_pwm, mot7_dir, mot7_brake, clk25, gs_rxdata, cs_17, rst_n, optocoupled)
+    Motor8_inst = MotorDriver(mot8_pwm, mot8_dir, mot8_brake, clk25, gs_rxdata, cs_18, rst_n, optocoupled)
 
     # TODO: ADC SPI
 
     # Servo motors
-    # FIXME: lines should be inverted because of opto-isolators
-    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, gs_rxdata, cs_21, rst_n)
-    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, gs_rxdata, cs_22, rst_n)
-    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, gs_rxdata, cs_23, rst_n)
-    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, gs_rxdata, cs_24, rst_n)
-    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, gs_rxdata, cs_25, rst_n)
-    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, gs_rxdata, cs_26, rst_n)
-    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, gs_rxdata, cs_27, rst_n)
-    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, gs_rxdata, cs_28, rst_n)
+    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, gs_rxdata, cs_21, rst_n, optocoupled)
+    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, gs_rxdata, cs_22, rst_n, optocoupled)
+    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, gs_rxdata, cs_23, rst_n, optocoupled)
+    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, gs_rxdata, cs_24, rst_n, optocoupled)
+    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, gs_rxdata, cs_25, rst_n, optocoupled)
+    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, gs_rxdata, cs_26, rst_n, optocoupled)
+    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, gs_rxdata, cs_27, rst_n, optocoupled)
+    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, gs_rxdata, cs_28, rst_n, optocoupled)
 
     # Master reads: 0x01 <= key <= 0x7F
     @always(clk25.posedge, rst_n.negedge)

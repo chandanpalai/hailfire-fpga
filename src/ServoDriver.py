@@ -4,7 +4,7 @@ LOW, HIGH = bool(0), bool(1)
 
 CLK_DIVIDER = 500000
 
-def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
+def ServoDriver(pwm, clk25, consign, cs_n, rst_n, optocoupled):
     """ PWM signal generator for servo motors
 
     Uses a 25 MHz clock to generate a PWM suitable for servo motors.
@@ -29,8 +29,13 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
     consign -- 16-bit consign value in clock ticks
     cs_n -- active low chip select (consign is read when active)
     rst_n -- active low reset input (pwm is reset when active)
+    optocoupled -- set to True if output should be inverted to account for optocoupler
 
     """
+
+    # account for optocouplers
+    LOW_OPTO  = LOW if not optocoupled else HIGH
+    HIGH_OPTO = HIGH if not optocoupled else LOW
 
     # count to 500000 to generate a 50 Hz PWM: 25000000/500000 = 50
     cnt = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
@@ -58,8 +63,8 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n):
     def DriveOutput():
         """ Drive PWM output signal """
         if cnt < dcl:
-            pwm.next = HIGH
+            pwm.next = HIGH_OPTO
         else:
-            pwm.next = LOW
+            pwm.next = LOW_OPTO
 
     return instances()

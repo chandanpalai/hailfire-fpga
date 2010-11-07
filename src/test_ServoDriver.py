@@ -21,7 +21,7 @@ def TestBench(ServoTester):
     rst_n = Signal(HIGH)
 
     # instanciate modules
-    ServoDriver_inst = ServoDriver(pwm, clk, consign, cs_n, rst_n)
+    ServoDriver_inst = ServoDriver(pwm, clk, consign, cs_n, rst_n, False)
     ServoTester_inst = ServoTester(pwm, clk, consign, cs_n, rst_n)
     ClkGen_inst = ClkGen(clk)
 
