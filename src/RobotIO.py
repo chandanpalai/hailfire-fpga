@@ -34,6 +34,7 @@ def RobotIO(
     ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7,
     ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
     ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7,
+    led_yellow_n, led_green_n, led_red_n
     ):
     """ Main module for robot IO stack
 
@@ -52,9 +53,9 @@ def RobotIO(
     ext5_* -- Extension port 5 signals
     ext6_* -- Extension port 6 signals
     ext7_* -- Extension port 7 signals
+    led_*_n -- Active-low LED signal
 
     """
-    pass
 
     # communication with GumstixSPI
     key = Signal(intbv(0)[8:])
@@ -278,6 +279,18 @@ def RobotIO(
             # Reset
             if key == 0x81:
                 rst_n.next = LOW
+
+            # Yellow LED
+            elif key == 0x82:
+                led_yellow_n.next = not value_from_master[0]
+
+            # Green LED
+            elif key == 0x83:
+                led_green_n.next = not value_from_master[0]
+
+            # Red LED
+            elif key == 0x84:
+                led_red_n.next = not value_from_master[0]
 
             # Motors
             elif 0x91 <= key and key <= 0x98:

@@ -127,6 +127,10 @@ ext7_5     = Signal(bool(0))
 ext7_6     = Signal(bool(0))
 ext7_7     = Signal(bool(0))
 
+led_yellow_n = Signal(bool(0))
+led_green_n  = Signal(bool(0))
+led_red_n    = Signal(bool(0))
+
 RobotIO_inst = toVHDL(RobotIO,
     clk25,
     sspi_clk, sspi_cs, sspi_miso, sspi_mosi,
@@ -151,4 +155,5 @@ RobotIO_inst = toVHDL(RobotIO,
     ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7,
     ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
     ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7,
+    led_yellow_n, led_green_n, led_red_n
 )

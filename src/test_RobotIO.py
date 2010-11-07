@@ -133,6 +133,10 @@ def TestBench(RobotIOTester):
     ext7_6     = Signal(LOW)
     ext7_7     = Signal(LOW)
 
+    led_yellow_n = Signal(HIGH)
+    led_green_n  = Signal(HIGH)
+    led_red_n    = Signal(HIGH)
+
     # Instanciate module under test
     RobotIO_inst = RobotIO(
         clk25,
@@ -158,6 +162,7 @@ def TestBench(RobotIOTester):
         ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7,
         ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
         ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7,
+        led_yellow_n, led_green_n, led_red_n
     )
 
     # Instanciate tester module
@@ -185,6 +190,7 @@ def TestBench(RobotIOTester):
         ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7,
         ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
         ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7,
+        led_yellow_n, led_green_n, led_red_n
     )
 
     # Clock generator
@@ -217,7 +223,80 @@ class TestRobotIO(unittest.TestCase):
                  ext4_0, ext4_1, ext4_2, ext4_3, ext4_4, ext4_5, ext4_6, ext4_7,
                  ext5_0, ext5_1, ext5_2, ext5_3, ext5_4, ext5_5, ext5_6, ext5_7,
                  ext6_0, ext6_1, ext6_2, ext6_3, ext6_4, ext6_5, ext6_6, ext6_7,
-                 ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7):
+                 ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7,
+                 led_yellow_n, led_green_n, led_red_n):
+
+
+        #
+        # LED
+        #
+
+        def get_write_led_command(color, on_off):
+            """ Return an intbv suitable to be sent to the slave to set led[color] on/off """
+            keys = {'yellow': 0x82, 'green': 0x83, 'red': 0x84}
+            ret = intbv(0)[24:]
+            ret[24:16] = keys[color] # set led on/off
+            ret[16:8] = 1            # send 1 byte
+            ret[8:] = on_off         # the value is the new state
+            return ret
+
+        def set_led_on_off(color, on_off):
+            """ Set led[color] on/off """
+            print 'set', color, 'led:', ('on' if on_off == 1 else 'off'), '...',
+            master_to_slave = get_write_led_command(color, on_off)
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            print 'done'
+
+        def set_leds_on_offs(on_offs):
+            """ Set all leds on/off in one SPI transfer """
+            print 'set all leds'
+            master_to_slave = get_write_led_command('yellow', on_offs['yellow'])
+            master_to_slave = concat(master_to_slave, get_write_led_command('green', on_offs['green']))
+            master_to_slave = concat(master_to_slave, get_write_led_command('red', on_offs['red']))
+            slave_to_master = intbv(0)
+            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            print 'done'
+
+        def check_led_on_off(color, on_off):
+            """ Checks that the duty cycle of the led[color] really corresponds to on_off[10:] """
+            print 'check', color, 'led is:', ('on' if on_off == 1 else 'off')
+            lines = {
+                'yellow': led_yellow_n,
+                'green': led_green_n,
+                'red': led_red_n
+            }
+
+            # LEDs glow when line is low
+            self.assertEquals(not lines[color], on_off)
+
+        def test_leds():
+            # Generate random on_offs for leds
+            on_offs = {
+                'yellow': intbv(randrange(2))[8:],
+                'green': intbv(randrange(2))[8:],
+                'red': intbv(randrange(2))[8:],
+            }
+
+            # Set led on_offs one at a time
+            for color in ['yellow', 'green', 'red']:
+                yield set_led_on_off(color, on_offs[color])
+                yield check_led_on_off(color, on_offs[color])
+
+            # Regen random on_offs
+            on_offs = {
+                'yellow': intbv(randrange(2))[8:],
+                'green': intbv(randrange(2))[8:],
+                'red': intbv(randrange(2))[8:],
+            }
+
+            # Set all led on_offs together
+            yield set_leds_on_offs(on_offs)
+
+            # Check actual duty cycles
+            for color in ['yellow', 'green', 'red']:
+                yield check_led_on_off(color, on_offs[color])
+
 
         #
         # Ext ports
@@ -573,6 +652,7 @@ class TestRobotIO(unittest.TestCase):
         # Tests
         #
 
+        yield test_leds()
         yield test_ext_ports()
         yield test_rc_ports()
         yield test_motors()
