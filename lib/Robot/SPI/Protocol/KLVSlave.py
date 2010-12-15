@@ -1,5 +1,5 @@
 from myhdl import Signal, enum, intbv, always, instance, instances
-from SPISlave import SPISlave
+from Robot.SPI.Slave import SPISlave
 
 LOW, HIGH = bool(0), bool(1)
 

@@ -5,7 +5,7 @@ import unittest
 
 from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join
 from random import randrange
-from ServoDriver import ServoDriver
+from Robot.Device.Servo import ServoDriver
 from TestUtils import ClkGen, count_high, LOW, HIGH
 
 NR_TESTS = 2

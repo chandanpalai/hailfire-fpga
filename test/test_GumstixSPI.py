@@ -6,7 +6,7 @@ from random import randrange
 
 from myhdl import Signal, intbv, traceSignals, Simulation, StopSimulation, join, delay, downrange, concat, always
 
-from GumstixSPI import GumstixSPI
+from Robot.SPI.Protocol.KLVSlave import GumstixSPI
 from TestUtils import ClkGen, random_write, random_read, spi_transfer, LOW, HIGH
 
 MAX_LENGTH = 256 # max length of values read or written by the Gumstix

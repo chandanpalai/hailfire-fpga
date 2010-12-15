@@ -5,7 +5,7 @@ import unittest
 
 from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join
 from random import randrange
-from MotorDriver import MotorDriver
+from Robot.Device.Motor import MotorDriver
 from TestUtils import ClkGen, count_high, LOW, HIGH
 
 NR_TESTS = 5

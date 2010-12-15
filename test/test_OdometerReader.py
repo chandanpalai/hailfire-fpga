@@ -4,7 +4,7 @@ sys.path.append('../lib')
 import unittest
 
 from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join, traceSignals
-from OdometerReader import OdometerReader
+from Robot.Device.Odometer import OdometerReader
 from random import randrange
 from TestUtils import ClkGen, quadrature_encode, LOW, HIGH
 

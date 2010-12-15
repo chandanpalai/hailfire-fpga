@@ -6,7 +6,7 @@ from random import randrange
 
 from myhdl import Signal, Simulation, intbv, join
 
-from SPISlave import SPISlave
+from Robot.SPI.Slave import SPISlave
 from TestUtils import spi_transfer, LOW, HIGH
 
 n = 8

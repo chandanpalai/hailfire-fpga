@@ -1,8 +1,8 @@
 from myhdl import Signal, intbv, always, always_comb, instances
-from OdometerReader import OdometerReader
-from MotorDriver import MotorDriver
-from ServoDriver import ServoDriver
-from GumstixSPI import GumstixSPI
+from Robot.Device.Odometer import OdometerReader
+from Robot.Device.Motor import MotorDriver
+from Robot.Device.Servo import ServoDriver
+from Robot.SPI.Protocol.KLVSlave import GumstixSPI
 
 LOW, HIGH = bool(0), bool(1)
 
