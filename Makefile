@@ -13,7 +13,7 @@ test:
 	# (cd test; python test_ServoDriver.py)
 
 clean:
-	find lib -name "*.pyc" -delete
+	find lib test -name "*.pyc" -delete
 	find test -name "*.vcd*" -delete
 	rm -f *.dpf
 	rm -f *.pin
@@ -28,4 +28,4 @@ realclean: clean
 	rm -f *.pof
 	rm -f *.sof
 	rm -f generated/*.vhd
-	rmdir generated
+	if [ -d generated ]; then rmdir generated; fi
