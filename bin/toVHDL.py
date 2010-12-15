@@ -3,7 +3,7 @@ sys.path.append('../lib')
 
 from myhdl import Signal, toVHDL
 
-from RobotIO import RobotIO
+from Robot.Main import RobotIO
 
 clk25      = Signal(bool(0))
 
