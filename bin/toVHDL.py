@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../lib')
+
 from myhdl import Signal, toVHDL
 
 from RobotIO import RobotIO

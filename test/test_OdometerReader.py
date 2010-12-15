@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../lib')
+
 import unittest
 
 from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join, traceSignals
