@@ -41,8 +41,8 @@ class TestLeftRightToAngleDistance(unittest.TestCase):
             right_val.next = right_rand            
 
         def check(left_rand, right_rand):
-            # print 'waiting for angle_val and distance_val'
-            yield join(angle_val, distance_val)
+            # print 'waiting for angle_val or distance_val'
+            yield angle_val, distance_val
 
             # print 'left should be:', right_rand - left_rand
             self.assertEquals(angle_val, (right_rand - left_rand) / 2)
