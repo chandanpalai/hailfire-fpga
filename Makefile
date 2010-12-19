@@ -4,17 +4,24 @@ build:
 
 .PHONY: test
 test:
+	(cd test; python test_AngleDistanceToLeftRight.py)
 	(cd test; python test_GumstixSPI.py)
+	(cd test; python test_LeftRightToAngleDistance.py)
 	(cd test; python test_MotorDriver.py)
 	(cd test; python test_OdometerReader.py)
+	(cd test; python test_PIDFilter.py)
+	(cd test; python test_RampFilter.py)
 	(cd test; python test_RobotIO.py)
 	(cd test; python test_SPISlave.py)
-	echo 'Skipping ServoDriver tests'
-	# (cd test; python test_ServoDriver.py)
+	echo 'Skipping ServoDriver tests: run make longtest'
+
+longtest: test
+	(cd test; python test_ServoDriver.py)
 
 clean:
 	find lib test -name "*.pyc" -delete
 	find test -name "*.vcd*" -delete
+	find test -name "*.vhd*" -delete
 	rm -f *.dpf
 	rm -f *.pin
 	rm -f *.done

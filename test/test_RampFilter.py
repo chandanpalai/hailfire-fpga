@@ -7,13 +7,13 @@ from myhdl import Signal, Simulation, toVHDL, StopSimulation, delay, intbv, join
 from Robot.ControlSystem.Filter.Ramp import RampFilter
 
 def TestBench(RampTester):
-    # create input and output signals with default values
-    input = Signal(intbv(0, min = -2**31, max = (2**31 - 1)))
-    output = Signal(intbv(0, min = -2**31, max = (2**31 - 1)))
+    # create input and output 32-bit signals with default values
+    input  = Signal(intbv(0, min = -2**31, max = 2**31))
+    output = Signal(intbv(0, min = -2**31, max = 2**31))
 
     # create max acceleration and deceleration signals with custom values
-    var_1st_ord_pos = Signal(intbv(13)[32:0])
-    var_1st_ord_neg = Signal(intbv(42)[32:0])
+    var_1st_ord_pos = Signal(intbv(13)[32:])
+    var_1st_ord_neg = Signal(intbv(42)[32:])
 
     # instanciate modules
     RampFilter_inst = toVHDL(RampFilter, input, output, var_1st_ord_pos, var_1st_ord_neg)

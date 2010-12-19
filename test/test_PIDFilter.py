@@ -9,7 +9,7 @@ from TestUtils import LOW, HIGH
 
 def TestBench(PIDTester):
     # create input and output signals with default values
-    input = Signal(intbv(0, min = -2**31, max = (2**31 - 1)))
+    input  = Signal(intbv(0, min = -2**31, max = 2**31))
     output = Signal(intbv(0, min = -2**31, max = 250))
 
     # create coeffs
