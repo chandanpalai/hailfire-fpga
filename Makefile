@@ -10,6 +10,8 @@ test:
 	(cd test; python test_MotorDriver.py)
 	(cd test; python test_OdometerReader.py)
 	(cd test; python test_PIDFilter.py)
+	(cd test; python test_PolarMotors.py)
+	(cd test; python test_PolarOdometers.py)
 	(cd test; python test_RampFilter.py)
 	(cd test; python test_RobotIO.py)
 	(cd test; python test_SPISlave.py)
