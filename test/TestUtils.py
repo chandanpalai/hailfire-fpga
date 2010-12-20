@@ -8,8 +8,8 @@ def ClkGen(clk):
     clk -- clock signal
 
     """
-    # Each delay unit simulates a half-period.
-    # An half-period amounts to 0.02 us of our 25MHz clock
+    # Each delay unit simulates a half-period (0.02us)
+    # 2ns in gtkwave amounts to a period (40ns) of our 25MHz clock
     @always(delay(1))
     def genClk():
         clk.next = not clk

@@ -152,13 +152,17 @@ def RobotIO(
 
     # Odometers
     rc1_count = Signal(intbv(0)[16:])
+    rc1_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     rc2_count = Signal(intbv(0)[16:])
+    rc2_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     rc3_count = Signal(intbv(0)[16:])
+    rc3_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     rc4_count = Signal(intbv(0)[16:])
-    Odometer1_inst = OdometerReader(rc1_count, rc1_cha, rc1_chb, clk25, rst_n)
-    Odometer2_inst = OdometerReader(rc2_count, rc2_cha, rc2_chb, clk25, rst_n)
-    Odometer3_inst = OdometerReader(rc3_count, rc3_cha, rc3_chb, clk25, rst_n)
-    Odometer4_inst = OdometerReader(rc4_count, rc4_cha, rc4_chb, clk25, rst_n)
+    rc4_speed = Signal(intbv(0, min = -2**31, max = 2**31))
+    Odometer1_inst = OdometerReader(rc1_count, rc1_speed, rc1_cha, rc1_chb, clk25, rst_n)
+    Odometer2_inst = OdometerReader(rc2_count, rc2_speed, rc2_cha, rc2_chb, clk25, rst_n)
+    Odometer3_inst = OdometerReader(rc3_count, rc3_speed, rc3_cha, rc3_chb, clk25, rst_n)
+    Odometer4_inst = OdometerReader(rc4_count, rc4_speed, rc4_cha, rc4_chb, clk25, rst_n)
 
     # DC Motors
     Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, gs_rxdata, cs_11, rst_n, optocoupled)
