@@ -6,7 +6,8 @@ import unittest
 from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join, traceSignals
 from Robot.Device.Odometer import OdometerReader
 from random import randrange
-from TestUtils import ClkGen, quadrature_encode, LOW, HIGH
+from Robot.Utils.Constants import LOW, HIGH
+from TestUtils import ClkGen, quadrature_encode
 
 def TestBench(OdometerTester):
     """ Instanciate modules and wire things up.
@@ -89,6 +90,8 @@ class TestOdometerReader(unittest.TestCase):
             yield quadrature_encode(steps_to_zero, b, a)
         self.assertEquals(count, 0)
         yield delay(100) # readability in gtkwave
+
+        print 'DONE'
 
         raise StopSimulation()
 

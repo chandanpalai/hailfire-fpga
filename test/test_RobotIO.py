@@ -6,7 +6,8 @@ import unittest
 from myhdl import Signal, Simulation, StopSimulation, always, concat, delay, downrange, intbv, join
 from random import randrange
 from Robot.Main import RobotIO
-from TestUtils import ClkGen, count_high, quadrature_encode, spi_transfer, LOW, HIGH
+from Robot.Utils.Constants import LOW, HIGH
+from TestUtils import ClkGen, count_high, quadrature_encode, spi_transfer
 
 def TestBench(RobotIOTester):
 

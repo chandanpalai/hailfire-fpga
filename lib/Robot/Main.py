@@ -3,8 +3,7 @@ from Robot.Device.Odometer import OdometerReader
 from Robot.Device.Motor import MotorDriver
 from Robot.Device.Servo import ServoDriver
 from Robot.SPI.Protocol.KLVSlave import GumstixSPI
-
-LOW, HIGH = bool(0), bool(1)
+from Robot.Utils.Constants import LOW, HIGH
 
 # max length of values read or written by the Gumstix
 # (the maximum for this value is 256)

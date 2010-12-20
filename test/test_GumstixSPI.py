@@ -7,7 +7,8 @@ from random import randrange
 from myhdl import Signal, intbv, traceSignals, Simulation, StopSimulation, join, delay, downrange, concat, always
 
 from Robot.SPI.Protocol.KLVSlave import GumstixSPI
-from TestUtils import ClkGen, random_write, random_read, spi_transfer, LOW, HIGH
+from Robot.Utils.Constants import LOW, HIGH
+from TestUtils import ClkGen, random_write, random_read, spi_transfer
 
 MAX_LENGTH = 256 # max length of values read or written by the Gumstix
 
@@ -112,6 +113,8 @@ class TestGumstixSPI(unittest.TestCase):
             print "\nread test", 'master sends:', hex(self.master_to_slave)
             yield join(spi_transfer(miso, mosi, sclk, ss_n, self.master_to_slave, self.slave_to_master), check_read())
             print 'slave responded:', hex(self.slave_to_master)
+
+        print 'DONE'
 
         raise StopSimulation()
 

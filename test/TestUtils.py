@@ -1,7 +1,6 @@
 from myhdl import Signal, intbv, always, concat, delay, downrange
 from random import randrange
-
-LOW, HIGH = bool(0), bool(1)
+from Robot.Utils.Constants import LOW, HIGH
 
 def ClkGen(clk):
     """ Test clock generator.

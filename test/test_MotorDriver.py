@@ -6,7 +6,8 @@ import unittest
 from myhdl import Signal, Simulation, StopSimulation, delay, intbv, join
 from random import randrange
 from Robot.Device.Motor import MotorDriver
-from TestUtils import ClkGen, count_high, LOW, HIGH
+from Robot.Utils.Constants import LOW, HIGH
+from TestUtils import ClkGen, count_high
 
 NR_TESTS = 5
 NR_PERIODS_PER_TEST = 5
@@ -64,6 +65,8 @@ class TestMotorDriver(unittest.TestCase):
             for j in range(NR_PERIODS_PER_TEST - 1):
                 yield pwm.posedge # wait for the beginning of the period
                 yield check(dcl) # check the number of 'high's in this period
+
+        print 'DONE'
 
         raise StopSimulation()
 

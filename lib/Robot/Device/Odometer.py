@@ -1,6 +1,5 @@
 from myhdl import Signal, intbv, always_comb, instance, instances
-
-LOW, HIGH = bool(0), bool(1)
+from Robot.Utils.Constants import LOW, HIGH
 
 MAX_COUNT = 2**16
 

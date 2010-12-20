@@ -5,7 +5,7 @@ import unittest
 
 from myhdl import Signal, Simulation, toVHDL, StopSimulation, delay, intbv, join, traceSignals
 from Robot.ControlSystem.Filter.PID import PIDFilter
-from TestUtils import LOW, HIGH
+from Robot.Utils.Constants import LOW, HIGH
 
 def TestBench(PIDTester):
     # create input and output signals with default values

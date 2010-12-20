@@ -1,7 +1,6 @@
 from myhdl import Signal, enum, intbv, always, instance, instances
 from Robot.SPI.Slave import SPISlave
-
-LOW, HIGH = bool(0), bool(1)
+from Robot.Utils.Constants import LOW, HIGH
 
 t_State = enum('READ_KEY', 'GET_READ_LENGTH', 'GET_WRITE_LENGTH', 'MASTER_WRITE', 'MASTER_READ')
 

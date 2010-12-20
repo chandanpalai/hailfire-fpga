@@ -52,9 +52,7 @@ class TestPolarOdometers(unittest.TestCase):
         left_speed.next = 200;
         right_count.next = 1;
         right_speed.next = 200; # assume 200 Hz (50 ms) for speeds: so 1 / 0.005
-        print 'foo'
         yield angle_count, angle_speed, distance_count, distance_speed
-        print 'bar'
         self.assertEquals(angle_count, (1 - 1) / 2)
         self.assertEquals(angle_speed, (200 - 200) / 2)
         self.assertEquals(distance_count, (1 + 1) / 2)

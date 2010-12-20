@@ -1,6 +1,5 @@
 from myhdl import Signal, intbv, always, instances
-
-LOW, HIGH = bool(0), bool(1)
+from Robot.Utils.Constants import LOW, HIGH
 
 CLK_DIVIDER = 500000
 

@@ -1,6 +1,5 @@
 from myhdl import Signal, always_comb, intbv, instance, instances
-
-LOW, HIGH = bool(0), bool(1)
+from Robot.Utils.Constants import LOW, HIGH
 
 def PIDFilter(input, output, gain_P, gain_I, gain_D, out_shift, max_I, max_D, rst_n):
     """
