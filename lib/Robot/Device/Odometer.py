@@ -56,38 +56,38 @@ def OdometerReader(count, speed, a, b, clk25, rst_n):
 
     # Use count_en and count_dir to count the odometer ticks and compute the
     # odometer speed just like the odometer count (except wrap around)
-    _speed = Signal(intbv(0, min = speed.min, max = speed.max))
-    _speed_rst_n = Signal(HIGH)
-    speed_counter = Counter(_speed, count_en, count_dir, LOW, _speed_rst_n)
+    int_speed = Signal(intbv(0, min = speed.min, max = speed.max))
+    speed_rst_n = Signal(HIGH)
+    speed_counter = Counter(int_speed, count_en, count_dir, LOW, speed_rst_n)
     
     # Copy the resulting speed count every 4ms (250Hz) and reset the counter
-    # so that it restarts at 0. _speed thus contain the number of ticks between
+    # so that it restarts at 0. int_speed thus contain the number of ticks between
     # two resets, i.e. the speed.
     @instance
     def handle_speed():
         # count to 100000 to generate a 250 Hz overflowing counter
-        _cnt = intbv(0, min = 0, max = 100000)
+        overflowing_cnt = intbv(0, min = 0, max = 100000)
         while True:
             yield clk25.posedge, rst_n.negedge
             if rst_n == LOW:
-                _speed_rst_n.next = LOW
+                speed_rst_n.next = LOW
             else:
-                if _cnt == _cnt.max - 1:
+                if overflowing_cnt == overflowing_cnt.max - 1:
                     # adjust speed to ticks/s while respecting speed bounds
-                    _tmp = 250 * _speed
-                    if _tmp >= _speed.max:
-                        speed.next = _speed.max - 1
-                    elif _tmp < _speed.min:
-                        speed.next = _speed.min
+                    tmp = 250 * int_speed
+                    if tmp >= int_speed.max:
+                        speed.next = int_speed.max - 1
+                    elif tmp < int_speed.min:
+                        speed.next = int_speed.min
                     else:
-                        speed.next = _tmp
+                        speed.next = tmp
 
                     # reset 250Hz counter and speed counter
-                    _cnt[:] = 0
-                    _speed_rst_n.next = LOW
+                    overflowing_cnt[:] = 0
+                    speed_rst_n.next = LOW
                 else:
                     # carry on, then.
-                    _cnt += 1
-                    _speed_rst_n.next = HIGH
+                    overflowing_cnt += 1
+                    speed_rst_n.next = HIGH
 
     return instances()

@@ -41,27 +41,27 @@ def RampFilter(input, output, var_1st_ord_pos, var_1st_ord_neg):
     """
 
     # _output is an internal read/write equivalent of output.
-    _output = Signal(intbv(output.val, min = output.min, max = output.max))
+    int_output = Signal(intbv(output.val, min = output.min, max = output.max))
 
     # This does a @always_comb. Doing it like this allows inout internal signals.
     @instance
     def do_filter():
         while True:
-            yield input, _output, var_1st_ord_pos, var_1st_ord_neg
-            if input > _output:
-                if (input - _output) < var_1st_ord_pos:
-                    _output.next = input
+            yield input, int_output, var_1st_ord_pos, var_1st_ord_neg
+            if input > int_output:
+                if (input - int_output) < var_1st_ord_pos:
+                    int_output.next = input
                 else:
-                    _output.next = _output + var_1st_ord_pos
+                    int_output.next = int_output + var_1st_ord_pos
             else:
-                if (_output - input) < var_1st_ord_neg:
-                    _output.next = input
+                if (int_output - input) < var_1st_ord_neg:
+                    int_output.next = input
                 else:
-                    _output.next = _output - var_1st_ord_neg
+                    int_output.next = int_output - var_1st_ord_neg
 
     # Copies the internal output to the actual output
     @always_comb
     def drive_output():
-        output.next = _output
+        output.next = int_output
 
     return instances()

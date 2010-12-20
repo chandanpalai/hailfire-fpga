@@ -54,55 +54,55 @@ def PIDFilter(input, output, gain_P, gain_I, gain_D, out_shift, max_I, max_D, rs
 
     """
 
-    # _output is an internal read/write equivalent of output.
-    _output = Signal(intbv(output.val, min = output.min, max = output.max))
+    # int_output is an internal read/write equivalent of output.
+    int_output = Signal(intbv(output.val, min = output.min, max = output.max))
 
     # compute and saturate output
     @instance
     def do_filter():
-        _previous_in = intbv(0, min = input.min, max = input.max)
-        _integral = intbv(0, min = -max_I, max = max_I)
-        _derivate = intbv(0, min = -max_D, max = max_D)
+        previous_in = intbv(0, min = input.min, max = input.max)
+        integral = intbv(0, min = -max_I, max = max_I)
+        derivate = intbv(0, min = -max_D, max = max_D)
         while True:
             yield input, rst_n
             if rst_n == LOW:
-                _integral[:] = 0
-                _derivate[:] = 0
-                _previous_in[:] = 0
+                integral[:] = 0
+                derivate[:] = 0
+                previous_in[:] = 0
             else:
                 # compute and saturate integral term
-                _tmp = input + _integral
-                if _tmp >= _integral.max:
-                    _integral[:] = _integral.max - 1
-                elif _tmp < _integral.min:
-                    _integral[:] = _integral.min
+                tmp = input + integral
+                if tmp >= integral.max:
+                    integral[:] = integral.max - 1
+                elif tmp < integral.min:
+                    integral[:] = integral.min
                 else:
-                    _integral[:] = _tmp
+                    integral[:] = tmp
 
                 # compute and saturate derivate term
-                _tmp = input - _previous_in
-                if _tmp >= _derivate.max:
-                    _derivate[:] = _derivate.max - 1
-                elif _tmp < _derivate.min:
-                    _derivate[:] = _derivate.min
+                tmp = input - previous_in
+                if tmp >= derivate.max:
+                    derivate[:] = derivate.max - 1
+                elif tmp < derivate.min:
+                    derivate[:] = derivate.min
                 else:
-                    _derivate[:] = _tmp
+                    derivate[:] = tmp
 
                 # keep input for next derivate computation
-                _previous_in[:] = input
+                previous_in[:] = input
 
-                # compute, saturate and drive _output
-                _tmp = (input * gain_P + _integral * gain_I + _derivate * gain_D) >> out_shift
-                if _tmp >= _output.max:
-                    _output.next = _output.max - 1
-                elif _tmp < _output.min:
-                    _output.next = _output.min
+                # compute, saturate and drive int_output
+                tmp = (input * gain_P + integral * gain_I + derivate * gain_D) >> out_shift
+                if tmp >= int_output.max:
+                    int_output.next = int_output.max - 1
+                elif tmp < int_output.min:
+                    int_output.next = int_output.min
                 else:
-                    _output.next = _tmp
+                    int_output.next = tmp
 
     # Copies the internal output to the actual output
     @always_comb
     def drive_output():
-        output.next = _output
+        output.next = int_output
 
     return instances()

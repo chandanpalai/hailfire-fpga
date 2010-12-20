@@ -32,28 +32,28 @@ def Counter(count, clk, inc_or_dec, wrap_around, rst_n):
     """
 
     # read/write clone of count
-    _count = Signal(intbv(0, min = count.min, max = count.max))
+    int_count = Signal(intbv(0, min = count.min, max = count.max))
 
     # counter logic
     @always(clk.posedge, rst_n.negedge)
     def do_count():
         if rst_n == LOW:
-            _count.next = 0
+            int_count.next = 0
         else:
             if inc_or_dec == HIGH:
-                if _count != _count.max - 1:
-                    _count.next = _count + 1
+                if int_count != int_count.max - 1:
+                    int_count.next = int_count + 1
                 elif wrap_around == HIGH:
-                    _count.next = _count.min
+                    int_count.next = int_count.min
             else:
-                if _count != _count.min:
-                    _count.next = _count - 1
+                if int_count != int_count.min:
+                    int_count.next = int_count - 1
                 elif wrap_around == HIGH:
-                    _count.next = _count.max - 1
+                    int_count.next = int_count.max - 1
 
-    # copies the internal _count to the count output
+    # copies the internal count to the count output
     @always_comb
     def drive_count():
-        count.next = _count
+        count.next = int_count
 
     return instances()
