@@ -1,5 +1,6 @@
-from myhdl import Signal, intbv, always_comb, instance, instances
+from myhdl import Signal, intbv, instance, instances
 from Robot.Utils.Constants import LOW, HIGH
+from Robot.Utils.Counter import Counter
 
 def OdometerReader(count, speed, a, b, clk25, rst_n):
     """
@@ -35,88 +36,58 @@ def OdometerReader(count, speed, a, b, clk25, rst_n):
 
     """
 
-    _count = Signal(intbv(0, min = count.min, max = count.max)) # so that count can be read and set
-    _speed = Signal(intbv(0, min = speed.min, max = speed.max)) # so that speed can be read and set
+    count_en  = Signal(LOW)
+    count_dir = Signal(LOW)
 
-    # Read quadrature encoder's channels and keep internal count
+    # Read quadrature encoder's channels and generate count_en and count_dir signals
     @instance
     def handle_count():
         previous_a = LOW
         previous_b = LOW
         while True:
-            yield clk25.posedge, rst_n.negedge
-            if rst_n == LOW:
-                _count.next = 0
-            else:
-                if a ^ previous_a ^ b ^ previous_b == 1: # it moved
-                    if a ^ previous_b == 1: # forward
-                        if _count == _count.max - 1:
-                            _count.next = _count.min
-                        else:
-                            _count.next = _count + 1
-                    else:
-                        if _count == _count.min:
-                            _count.next = _count.max - 1
-                        else:
-                            _count.next = _count - 1
-                previous_a = a.val
-                previous_b = b.val
-
-    # Generate a 250 Hz clock
-    clk250hz = Signal(LOW)
-    @instance
-    def gen_clk250hz():
-        # count to 50000 to generate a 500 Hz overflowing counter (25M/50000=500)
-        # toggle clock at each overflow: 250 Hz clock
-        _cnt = intbv(0, min = 0, max = 50000)
-        while True:
             yield clk25.posedge
-            if _cnt == _cnt.max - 1:
-                _cnt[:] = 0
-                clk250hz.next = not clk250hz
-            else:
-                _cnt += 1
+            count_en.next  = (a ^ previous_a ^ b ^ previous_b == 1) # it moved
+            count_dir.next = (a ^ previous_b == 1) # forward
+            previous_a = a.val
+            previous_b = b.val
 
-    # Compute the speed at 250 Hz
+    # Use count_en and count_dir to maintain the odometer count
+    count_counter = Counter(count, count_en, count_dir, HIGH, rst_n)
+
+    # Use count_en and count_dir to count the odometer ticks and compute the
+    # odometer speed just like the odometer count (except wrap around)
+    _speed = Signal(intbv(0, min = speed.min, max = speed.max))
+    _speed_rst_n = Signal(HIGH)
+    speed_counter = Counter(_speed, count_en, count_dir, LOW, _speed_rst_n)
+    
+    # Copy the resulting speed count every 4ms (250Hz) and reset the counter
+    # so that it restarts at 0. _speed thus contain the number of ticks between
+    # two resets, i.e. the speed.
     @instance
     def handle_speed():
-        _previous_count = intbv(0)[len(_count):]
-        _range = _count.max - _count.min
+        # count to 100000 to generate a 250 Hz overflowing counter
+        _cnt = intbv(0, min = 0, max = 100000)
         while True:
-            yield clk250hz.posedge, rst_n.negedge
+            yield clk25.posedge, rst_n.negedge
             if rst_n == LOW:
-                _speed.next = 0
-                _previous_count[:] = 0
+                _speed_rst_n.next = LOW
             else:
-                _tmp = _count - _previous_count
+                if _cnt == _cnt.max - 1:
+                    # adjust speed to ticks/s while respecting speed bounds
+                    _tmp = 250 * _speed
+                    if _tmp >= _speed.max:
+                        speed.next = _speed.max - 1
+                    elif _tmp < _speed.min:
+                        speed.next = _speed.min
+                    else:
+                        speed.next = _tmp
 
-                # handle underflows and overflows:
-                # - if the counter overflowed:  _count - _previous_count is REALLY negative (<< 0)
-                # - if the counter underflowed: _count - _previous_count is REALLY positive (>> 0)
-                # the limit of 'really' is arbitrarily set to half the possible range of the count
-                if _tmp <= -(_range >> 1):
-                    _tmp += _range
-                if _tmp >= (_range >> 1):
-                    _tmp -= _range
-
-                # adjust to count in ticks/s
-                _tmp *= 250
-                if _tmp >= _speed.max:
-                    _speed.next = _speed.max - 1
-                elif _tmp < _speed.min:
-                    _speed.next = _speed.min
+                    # reset 250Hz counter and speed counter
+                    _cnt[:] = 0
+                    _speed_rst_n.next = LOW
                 else:
-                    _speed.next = _tmp
-                _previous_count[:] = count
-
-    # Copies the internal count to the count output
-    @always_comb
-    def drive_count():
-        count.next = _count
-
-    # Copies the internal speed to the speed output
-    @always_comb
-    def drive_speed():
-        speed.next = _speed
+                    # carry on, then.
+                    _cnt += 1
+                    _speed_rst_n.next = HIGH
 
     return instances()
