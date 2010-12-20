@@ -44,12 +44,12 @@ def Counter(count, clk, inc_or_dec, wrap_around, rst_n):
                 if int_count != int_count.max - 1:
                     int_count.next = int_count + 1
                 elif wrap_around == HIGH:
-                    int_count.next = int_count.min
+                    int_count.next = intbv(int_count.min)
             else:
                 if int_count != int_count.min:
                     int_count.next = int_count - 1
                 elif wrap_around == HIGH:
-                    int_count.next = int_count.max - 1
+                    int_count.next = intbv(int_count.max - 1)
 
     # copies the internal count to the count output
     @always_comb

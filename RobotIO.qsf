@@ -18,7 +18,7 @@
 #
 # Quartus II
 # Version 10.0 Build 262 08/18/2010 Service Pack 1 SJ Web Edition
-# Date created = 18:32:09  November 07, 2010
+# Date created = 00:25:24  December 21, 2010
 #
 # -------------------------------------------------------------------------- #
 #
@@ -42,8 +42,8 @@
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "10.0 SP1"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "14:43:44  OCTOBER 25, 2010"
 set_global_assignment -name LAST_QUARTUS_VERSION "10.0 SP1"
-set_global_assignment -name VHDL_FILE src/RobotIO.vhd
-set_global_assignment -name VHDL_FILE src/pck_myhdl_06.vhd
+set_global_assignment -name VHDL_FILE generated/RobotIO.vhd
+set_global_assignment -name VHDL_FILE generated/pck_myhdl_06.vhd
 
 # Pin & Location Assignments
 # ==========================
