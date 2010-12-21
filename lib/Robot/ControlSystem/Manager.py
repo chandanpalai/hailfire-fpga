@@ -1,9 +1,10 @@
 from myhdl import Signal, always_comb, instances, intbv
+from Robot.Utils.Constants import LOW, HIGH
 
 def ControlSystemManager(consign_filter_input, consign_filter_output,
                          correct_filter_input, correct_filter_output,
                          feedback_filter_input, feedback_filter_output,
-                         process_input, process_output, consign):
+                         process_input, process_output, consign, enable):
     """
 
     Control System Manager
@@ -39,6 +40,12 @@ def ControlSystemManager(consign_filter_input, consign_filter_output,
 
         The input of the control system.
 
+    enable
+
+        Pull high to enable the control system. When disabled, nothing happens:
+        the filters are not updated, the error is not computed and the process
+        input is not set.
+
     """
 
     # Filter the consign
@@ -46,14 +53,16 @@ def ControlSystemManager(consign_filter_input, consign_filter_output,
     assert consign_filter_input.max >= consign.max, 'insufficient consign_filter_input.max'
     @always_comb
     def feed_consign_filter():
-        consign_filter_input.next = consign
+        if enable == HIGH:
+            consign_filter_input.next = consign
 
     # Filter the feedback
     assert feedback_filter_input.min <= process_output.min, 'insufficient feedback_filter_input.min'
     assert feedback_filter_input.max >= process_output.max, 'insufficient feedback_filter_input.max'
     @always_comb
     def feed_feedback_filter():
-        feedback_filter_input.next = process_output
+        if enable == HIGH:
+            feedback_filter_input.next = process_output
 
     # Compute the error
     error = Signal(intbv(0,
@@ -61,20 +70,23 @@ def ControlSystemManager(consign_filter_input, consign_filter_output,
         max = consign_filter_output.max - feedback_filter_output.min))
     @always_comb
     def compute_error():
-        error.next = consign_filter_output - feedback_filter_output
+        if enable == HIGH:
+            error.next = consign_filter_output - feedback_filter_output
 
     # Correct the error
     assert correct_filter_input.min <= error.min, 'insufficient correct_filter_input.min'
     assert correct_filter_input.max >= error.max, 'insufficient correct_filter_input.max'
     @always_comb
     def feed_correct_filter():
-        correct_filter_input.next = error
+        if enable == HIGH:
+            correct_filter_input.next = error
 
     # Feed the process
     assert process_input.min <= correct_filter_output.min, 'insufficient process_input.min'
     assert process_input.max >= correct_filter_output.max, 'insufficient process_input.max'
     @always_comb
     def feed_process():
-        process_input.next = correct_filter_output
+        if enable == HIGH:
+            process_input.next = correct_filter_output
 
     return instances()

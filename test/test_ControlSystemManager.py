@@ -5,6 +5,7 @@ import unittest
 
 from myhdl import Signal, Simulation, toVHDL, StopSimulation, always_comb, intbv, join, traceSignals
 from Robot.ControlSystem.Manager import ControlSystemManager
+from Robot.Utils.Constants import LOW, HIGH
 
 def TestBench(ControlSystemManagerTester):
     # create fake consign filter
@@ -35,8 +36,9 @@ def TestBench(ControlSystemManagerTester):
     def fake_process():
         process_output.next = process_input
 
-    # control system input
+    # control system inputs
     consign = Signal(intbv(0, min = -2**30, max = 2**30)) # 31-bit
+    enable  = Signal(LOW)
 
     # instanciate modules
     ControlSystemManager_inst = toVHDL(
@@ -44,12 +46,12 @@ def TestBench(ControlSystemManagerTester):
         consign_filter_input, consign_filter_output,
         correct_filter_input, correct_filter_output,
         feedback_filter_input, feedback_filter_output,
-        process_input, process_output, consign)
+        process_input, process_output, consign, enable)
     ControlSystemManagerTester_inst = ControlSystemManagerTester(
         consign_filter_input, consign_filter_output,
         correct_filter_input, correct_filter_output,
         feedback_filter_input, feedback_filter_output,
-        process_input, process_output, consign)
+        process_input, process_output, consign, enable)
 
     return (fake_consign_filter,
             fake_correct_filter,
@@ -64,10 +66,13 @@ class TestControlSystemManager(unittest.TestCase):
         consign_filter_input, consign_filter_output,
         correct_filter_input, correct_filter_output,
         feedback_filter_input, feedback_filter_output,
-        process_input, process_output, consign):
+        process_input, process_output, consign, enable):
 
         self.assertEquals(process_input, 0)
         self.assertEquals(process_output, 0)
+
+        # enable the control system
+        enable.next = HIGH
 
         # consign: 0 to 42, process_output: 0 to 42
         consign.next = 42
