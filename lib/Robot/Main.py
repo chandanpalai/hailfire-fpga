@@ -298,29 +298,29 @@ def RobotIO(
             if master_read_n == LOW:
                 value_for_master.next[:] = 0
                 if key == 0x11:
-                    value_for_master.next[16:] = rc1_count
+                    value_for_master.next[len(rc1_count):] = rc1_count
                 elif key == 0x12:
-                    value_for_master.next[16:] = rc2_count
+                    value_for_master.next[len(rc2_count):] = rc2_count
                 elif key == 0x13:
-                    value_for_master.next[16:] = left_odometer_count
+                    value_for_master.next[len(left_odometer_count):] = left_odometer_count
                 elif key == 0x14:
-                    value_for_master.next[16:] = right_odometer_count
+                    value_for_master.next[len(right_odometer_count):] = right_odometer_count
                 elif key == 0x15:
-                    value_for_master.next[16:] = angle_odometer_count
+                    value_for_master.next[len(angle_odometer_count):] = angle_odometer_count
                 elif key == 0x16:
-                    value_for_master.next[16:] = distance_odometer_count
+                    value_for_master.next[len(distance_odometer_count):] = distance_odometer_count
                 elif key == 0x21:
-                    value_for_master.next[32:] = rc1_speed
+                    value_for_master.next[len(rc1_speed):] = rc1_speed
                 elif key == 0x22:
-                    value_for_master.next[32:] = rc2_speed
+                    value_for_master.next[len(rc2_speed):] = rc2_speed
                 elif key == 0x23:
-                    value_for_master.next[32:] = left_odometer_speed
+                    value_for_master.next[len(left_odometer_speed):] = left_odometer_speed
                 elif key == 0x24:
-                    value_for_master.next[32:] = right_odometer_speed
+                    value_for_master.next[len(right_odometer_speed):] = right_odometer_speed
                 elif key == 0x25:
-                    value_for_master.next[32:] = angle_odometer_speed
+                    value_for_master.next[len(angle_odometer_speed):] = angle_odometer_speed
                 elif key == 0x26:
-                    value_for_master.next[32:] = distance_odometer_speed
+                    value_for_master.next[len(distance_odometer_speed):] = distance_odometer_speed
                 elif key == 0x31:
                     value_for_master.next[0] = ext1_0
                     value_for_master.next[1] = ext1_1
@@ -416,12 +416,12 @@ def RobotIO(
 
             # Motors
             elif 0x91 <= key and key <= 0x96:
-                gs_rxdata.next[16:] = value_from_master[16:]
+                gs_rxdata.next = value_from_master[len(gs_rxdata):]
                 cs_n.next[int(key) - 0x86] = 0 # 11 to 16
 
             # Servos
             elif 0xA1 <= key and key <= 0xA8:
-                gs_rxdata.next[16:] = value_from_master[16:]
+                gs_rxdata.next = value_from_master[len(gs_rxdata):]
                 cs_n.next[int(key) - 0x8C] = 0 # 21 to 28
 
             # Angle control system
