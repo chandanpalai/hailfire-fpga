@@ -1,6 +1,11 @@
 from myhdl import Signal, intbv, always, always_comb, instances
-from Robot.Device.Odometer import OdometerReader
+from Robot.ControlSystem.Filter.PID import PIDFilter
+from Robot.ControlSystem.Filter.Ramp import RampFilter
+from Robot.ControlSystem.Manager import ControlSystemManager
 from Robot.Device.Motor import MotorDriver
+from Robot.Device.Odometer import OdometerReader
+from Robot.Device.PolarMotors import PolarMotors
+from Robot.Device.PolarOdometers import PolarOdometers
 from Robot.Device.Servo import ServoDriver
 from Robot.SPI.Protocol.KLVSlave import GumstixSPI
 from Robot.Utils.Constants import LOW, HIGH
@@ -8,6 +13,22 @@ from Robot.Utils.Constants import LOW, HIGH
 # max length of values read or written by the Gumstix
 # (the maximum for this value is 256)
 MAX_LENGTH = 8
+
+MIN_ODOMETER_SPEED = -2**30
+MAX_ODOMETER_SPEED = +2**30
+
+MIN_MOTOR_SPEED = -2**10
+MAX_MOTOR_SPEED = +2**10
+
+MIN_ANGLE_SPEED = MIN_ODOMETER_SPEED
+MAX_ANGLE_SPEED = MAX_ODOMETER_SPEED
+MAX_ANGLE_ACCELERATION = 2**15
+MAX_ANGLE_DECELERATION = 2**15
+
+MIN_DISTANCE_SPEED = MIN_ODOMETER_SPEED
+MAX_DISTANCE_SPEED = MAX_ODOMETER_SPEED
+MAX_DISTANCE_ACCELERATION = 2**15
+MAX_DISTANCE_DECELERATION = 2**15
 
 def RobotIO(
     clk25,
@@ -150,29 +171,55 @@ def RobotIO(
                                  key, length, master_read_n, value_for_master, master_write_n, value_from_master,
                                  clk25, rst_n)
 
-    # Odometers
+    # !Left/Right odometers (rc3 & rc4)
+    left_odometer_count  = Signal(intbv(0, min = -2**15, max = 2**15))
+    left_odometer_speed  = Signal(intbv(0, min = MIN_ODOMETER_SPEED, max = MAX_ODOMETER_SPEED))
+    right_odometer_count = Signal(intbv(0, min = -2**15, max = 2**15))
+    right_odometer_speed = Signal(intbv(0, min = MIN_ODOMETER_SPEED, max = MAX_ODOMETER_SPEED))
+    LeftOdometer_inst    = OdometerReader(left_odometer_count, left_odometer_speed,
+                                          rc3_cha, rc3_chb, clk25, rst_n)
+    RightOdometer_inst   = OdometerReader(right_odometer_count, right_odometer_speed,
+                                          rc4_cha, rc4_chb, clk25, rst_n)
+
+    # !Polar odometers
+    angle_odometer_count    = Signal(intbv(0, min = -2**15, max = 2**15))
+    angle_odometer_speed    = Signal(intbv(0, min = MIN_ANGLE_SPEED, max = MAX_ANGLE_SPEED))
+    distance_odometer_count = Signal(intbv(0, min = -2**15, max = 2**15))
+    distance_odometer_speed = Signal(intbv(0, min = MIN_DISTANCE_SPEED, max = MAX_DISTANCE_SPEED))
+    PolarOdometers_inst     = PolarOdometers(left_odometer_count, left_odometer_speed,
+                                             right_odometer_count, right_odometer_speed,
+                                             angle_odometer_count, angle_odometer_speed,
+                                             distance_odometer_count, distance_odometer_speed)
+
+    # !Other odometers (rc1 & rc2)
     rc1_count = Signal(intbv(0)[16:])
     rc1_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     rc2_count = Signal(intbv(0)[16:])
     rc2_speed = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc3_count = Signal(intbv(0)[16:])
-    rc3_speed = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc4_count = Signal(intbv(0)[16:])
-    rc4_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     Odometer1_inst = OdometerReader(rc1_count, rc1_speed, rc1_cha, rc1_chb, clk25, rst_n)
     Odometer2_inst = OdometerReader(rc2_count, rc2_speed, rc2_cha, rc2_chb, clk25, rst_n)
-    Odometer3_inst = OdometerReader(rc3_count, rc3_speed, rc3_cha, rc3_chb, clk25, rst_n)
-    Odometer4_inst = OdometerReader(rc4_count, rc4_speed, rc4_cha, rc4_chb, clk25, rst_n)
 
-    # DC Motors
+    # !Left/Right motors (mot7 & mot8)
+    left_motor_speed  = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    right_motor_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    LeftMotor_inst    = MotorDriver(mot7_pwm, mot7_dir, mot7_brake,
+                                    clk25, left_motor_speed, cs_17, rst_n, optocoupled)
+    RightMotor_inst   = MotorDriver(mot8_pwm, mot8_dir, mot8_brake,
+                                    clk25, right_motor_speed, cs_18, rst_n, optocoupled)
+
+    # !Polar motors
+    angle_motor_speed    = Signal(intbv(0, min = -2**9, max = 2**9)) # FIXME: 10-bit signed int
+    distance_motor_speed = Signal(intbv(0, min = -2**9, max = 2**9)) # FIXME: 10-bit signed int
+    PolarMotors_inst     = PolarMotors(angle_motor_speed, distance_motor_speed,
+                                       left_motor_speed, right_motor_speed)
+
+    # !Other motors (mot1-6)
     Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, gs_rxdata, cs_11, rst_n, optocoupled)
     Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, gs_rxdata, cs_12, rst_n, optocoupled)
     Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, gs_rxdata, cs_13, rst_n, optocoupled)
     Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, gs_rxdata, cs_14, rst_n, optocoupled)
     Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, gs_rxdata, cs_15, rst_n, optocoupled)
     Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, gs_rxdata, cs_16, rst_n, optocoupled)
-    Motor7_inst = MotorDriver(mot7_pwm, mot7_dir, mot7_brake, clk25, gs_rxdata, cs_17, rst_n, optocoupled)
-    Motor8_inst = MotorDriver(mot8_pwm, mot8_dir, mot8_brake, clk25, gs_rxdata, cs_18, rst_n, optocoupled)
 
     # TODO: ADC SPI
 
@@ -185,6 +232,62 @@ def RobotIO(
     Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, gs_rxdata, cs_26, rst_n, optocoupled)
     Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, gs_rxdata, cs_27, rst_n, optocoupled)
     Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, gs_rxdata, cs_28, rst_n, optocoupled)
+
+    # Angle control system
+
+    ## Ramp consign filter
+    angle_consign_filter_input  = Signal(intbv(0, min = MIN_ANGLE_SPEED, max = MAX_ANGLE_SPEED))
+    angle_consign_filter_output = Signal(intbv(0, min = MIN_ANGLE_SPEED, max = MAX_ANGLE_SPEED))
+    angle_max_acceleration      = Signal(intbv(0, min = 0, max = MAX_ANGLE_ACCELERATION))
+    angle_max_deceleration      = Signal(intbv(0, min = 0, max = MAX_ANGLE_DECELERATION))
+    AngleRamp = RampFilter(angle_consign_filter_input,
+                           angle_consign_filter_output,
+                           angle_max_acceleration,
+                           angle_max_deceleration)
+
+    ## Fake filter on the feedback
+    angle_feedback_filter_input  = Signal(intbv(0, min = angle_odometer_speed.min,
+                                                   max = angle_odometer_speed.max))
+    angle_feedback_filter_output = Signal(intbv(0, min = angle_odometer_speed.min,
+                                                   max = angle_odometer_speed.max))
+    @always_comb
+    def fake_angle_feedback_filter():
+        angle_feedback_filter_output.next = angle_feedback_filter_input
+
+    ## PID correct filter
+    angle_correct_filter_input  = Signal(intbv(0, min = angle_consign_filter_output.min - angle_feedback_filter_output.max,
+                                                  max = angle_consign_filter_output.max - angle_feedback_filter_output.min))
+    angle_correct_filter_output = Signal(intbv(0, min = angle_motor_speed.min,
+                                                  max = angle_motor_speed.max))
+    angle_correct_filter_gain_P    = Signal(intbv(0)[8:]) # FIXME: bit width
+    angle_correct_filter_gain_I    = Signal(intbv(0)[8:]) # FIXME: bit width
+    angle_correct_filter_gain_D    = Signal(intbv(0)[8:]) # FIXME: bit width
+    angle_correct_filter_out_shift = Signal(intbv(0)[8:]) # FIXME: bit width
+    angle_correct_filter_max_I     = intbv(2**31) # FIXME: value
+    angle_correct_filter_max_D     = intbv(2**31) # FIXME: value
+    AnglePID = PIDFilter(angle_correct_filter_input,
+                         angle_correct_filter_output,
+                         angle_correct_filter_gain_P,
+                         angle_correct_filter_gain_I,
+                         angle_correct_filter_gain_D,
+                         angle_correct_filter_out_shift,
+                         angle_correct_filter_max_I,
+                         angle_correct_filter_max_D,
+                         rst_n)
+
+    ## Control system manager
+    angle_consign = Signal(intbv(0, min = MIN_ODOMETER_SPEED, max = MAX_ODOMETER_SPEED))
+    angle_enable  = Signal(LOW)
+    AngleManager = ControlSystemManager(angle_consign_filter_input,
+                                        angle_consign_filter_output,
+                                        angle_correct_filter_input,
+                                        angle_correct_filter_output,
+                                        angle_feedback_filter_input,
+                                        angle_feedback_filter_output,
+                                        angle_motor_speed,
+                                        angle_odometer_speed,
+                                        angle_consign,
+                                        angle_enable)
 
     # Master reads: 0x01 <= key <= 0x7F
     @always(clk25.posedge, rst_n.negedge)
@@ -199,10 +302,26 @@ def RobotIO(
                 elif key == 0x12:
                     value_for_master.next[16:] = rc2_count
                 elif key == 0x13:
-                    value_for_master.next[16:] = rc3_count
+                    value_for_master.next[16:] = left_odometer_count
                 elif key == 0x14:
-                    value_for_master.next[16:] = rc4_count
+                    value_for_master.next[16:] = right_odometer_count
+                elif key == 0x15:
+                    value_for_master.next[16:] = angle_odometer_count
+                elif key == 0x16:
+                    value_for_master.next[16:] = distance_odometer_count
                 elif key == 0x21:
+                    value_for_master.next[32:] = rc1_speed
+                elif key == 0x22:
+                    value_for_master.next[32:] = rc2_speed
+                elif key == 0x23:
+                    value_for_master.next[32:] = left_odometer_speed
+                elif key == 0x24:
+                    value_for_master.next[32:] = right_odometer_speed
+                elif key == 0x25:
+                    value_for_master.next[32:] = angle_odometer_speed
+                elif key == 0x26:
+                    value_for_master.next[32:] = distance_odometer_speed
+                elif key == 0x31:
                     value_for_master.next[0] = ext1_0
                     value_for_master.next[1] = ext1_1
                     value_for_master.next[2] = ext1_2
@@ -211,7 +330,7 @@ def RobotIO(
                     value_for_master.next[5] = ext1_5
                     value_for_master.next[6] = ext1_6
                     value_for_master.next[7] = ext1_7
-                elif key == 0x22:
+                elif key == 0x32:
                     value_for_master.next[0] = ext2_0
                     value_for_master.next[1] = ext2_1
                     value_for_master.next[2] = ext2_2
@@ -220,7 +339,7 @@ def RobotIO(
                     value_for_master.next[5] = ext2_5
                     value_for_master.next[6] = ext2_6
                     value_for_master.next[7] = ext2_7
-                elif key == 0x23:
+                elif key == 0x33:
                     value_for_master.next[0] = ext3_0
                     value_for_master.next[1] = ext3_1
                     value_for_master.next[2] = ext3_2
@@ -229,7 +348,7 @@ def RobotIO(
                     value_for_master.next[5] = ext3_5
                     value_for_master.next[6] = ext3_6
                     value_for_master.next[7] = ext3_7
-                elif key == 0x24:
+                elif key == 0x34:
                     value_for_master.next[0] = ext4_0
                     value_for_master.next[1] = ext4_1
                     value_for_master.next[2] = ext4_2
@@ -238,7 +357,7 @@ def RobotIO(
                     value_for_master.next[5] = ext4_5
                     value_for_master.next[6] = ext4_6
                     value_for_master.next[7] = ext4_7
-                elif key == 0x25:
+                elif key == 0x35:
                     value_for_master.next[0] = ext5_0
                     value_for_master.next[1] = ext5_1
                     value_for_master.next[2] = ext5_2
@@ -247,7 +366,7 @@ def RobotIO(
                     value_for_master.next[5] = ext5_5
                     value_for_master.next[6] = ext5_6
                     value_for_master.next[7] = ext5_7
-                elif key == 0x26:
+                elif key == 0x36:
                     value_for_master.next[0] = ext6_0
                     value_for_master.next[1] = ext6_1
                     value_for_master.next[2] = ext6_2
@@ -256,7 +375,7 @@ def RobotIO(
                     value_for_master.next[5] = ext6_5
                     value_for_master.next[6] = ext6_6
                     value_for_master.next[7] = ext6_7
-                elif key == 0x27:
+                elif key == 0x37:
                     value_for_master.next[0] = ext7_0
                     value_for_master.next[1] = ext7_1
                     value_for_master.next[2] = ext7_2
@@ -296,13 +415,32 @@ def RobotIO(
                 led_red_n.next = not value_from_master[0]
 
             # Motors
-            elif 0x91 <= key and key <= 0x98:
+            elif 0x91 <= key and key <= 0x96:
                 gs_rxdata.next[16:] = value_from_master[16:]
-                cs_n.next[int(key) - 0x86] = 0 # 11 to 18
+                cs_n.next[int(key) - 0x86] = 0 # 11 to 16
 
             # Servos
             elif 0xA1 <= key and key <= 0xA8:
                 gs_rxdata.next[16:] = value_from_master[16:]
                 cs_n.next[int(key) - 0x8C] = 0 # 21 to 28
+
+            # Angle control system
+            elif 0xB0 <= key and key <= 0xB7:
+                if key == 0xB0:
+                    angle_enable.next = value_from_master[0]
+                elif key == 0xB1:
+                    angle_consign.next = value_from_master[len(angle_consign):].signed()
+                elif key == 0xB2:
+                    angle_max_acceleration.next = value_from_master[len(angle_max_deceleration):]
+                elif key == 0xB3:
+                    angle_max_deceleration.next = value_from_master[len(angle_max_deceleration):]
+                elif key == 0xB4:
+                    angle_correct_filter_gain_P.next = value_from_master[len(angle_correct_filter_gain_P):]
+                elif key == 0xB5:
+                    angle_correct_filter_gain_I.next = value_from_master[len(angle_correct_filter_gain_I):]
+                elif key == 0xB6:
+                    angle_correct_filter_gain_D.next = value_from_master[len(angle_correct_filter_gain_D):]
+                elif key == 0xB7:
+                    angle_correct_filter_out_shift.next = value_from_master[len(angle_correct_filter_out_shift):]
 
     return instances()
