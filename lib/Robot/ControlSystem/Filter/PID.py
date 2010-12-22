@@ -73,18 +73,18 @@ def PIDFilter(input, output, gain_P, gain_I, gain_D, out_shift, max_I, max_D, rs
                 # compute and saturate integral term
                 tmp = input + integral
                 if tmp >= integral.max:
-                    integral[:] = integral.max - 1
+                    integral[:] = intbv(integral.max - 1)
                 elif tmp < integral.min:
-                    integral[:] = integral.min
+                    integral[:] = intbv(integral.min)
                 else:
                     integral[:] = tmp
 
                 # compute and saturate derivate term
                 tmp = input - previous_in
                 if tmp >= derivate.max:
-                    derivate[:] = derivate.max - 1
+                    derivate[:] = intbv(derivate.max - 1)
                 elif tmp < derivate.min:
-                    derivate[:] = derivate.min
+                    derivate[:] = intbv(derivate.min)
                 else:
                     derivate[:] = tmp
 
@@ -94,9 +94,9 @@ def PIDFilter(input, output, gain_P, gain_I, gain_D, out_shift, max_I, max_D, rs
                 # compute, saturate and drive int_output
                 tmp = (input * gain_P + integral * gain_I + derivate * gain_D) >> out_shift
                 if tmp >= int_output.max:
-                    int_output.next = int_output.max - 1
+                    int_output.next = intbv(int_output.max - 1)
                 elif tmp < int_output.min:
-                    int_output.next = int_output.min
+                    int_output.next = intbv(int_output.min)
                 else:
                     int_output.next = tmp
 
