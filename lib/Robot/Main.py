@@ -416,12 +416,12 @@ def RobotIO(
             # Motors
             elif 0x91 <= key and key <= 0x96:
                 motors_speed.next = value_from_master[len(motors_speed):].signed()
-                cs_n.next[int(key) - 0x86] = 0 # 11 to 16
+                cs_n.next[key - 0x86] = 0 # 11 to 16
 
             # Servos
             elif 0xA1 <= key and key <= 0xA8:
                 servos_consign.next = value_from_master[len(servos_consign):]
-                cs_n.next[int(key) - 0x8C] = 0 # 21 to 28
+                cs_n.next[key - 0x8C] = 0 # 21 to 28
 
             # Angle control system
             elif 0xB0 <= key and key <= 0xB7:

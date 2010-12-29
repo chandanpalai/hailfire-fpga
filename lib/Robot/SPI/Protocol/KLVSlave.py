@@ -88,7 +88,7 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
                     pass
                 elif state == t_State.MASTER_READ:
                     # send next value byte to master
-                    txdata.next = value_for_master[int(index) + 8:int(index)]
+                    txdata.next = value_for_master[(index + 8):index]
 
                 # do stuff at clock tick when a byte has been received
                 if byte_received_n == LOW:
@@ -133,7 +133,7 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
                     # handle the value bytes sent by the master
                     elif state == t_State.MASTER_WRITE:
                         # read value byte sent by master and store it
-                        value_from_master.next[int(index) + 8:int(index)] = rxdata
+                        value_from_master.next[(index + 8):index] = rxdata
 
                         if index >= 8:
                             # Get next byte
