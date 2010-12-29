@@ -93,76 +93,6 @@ def RobotIO(
     # chip select signals
     cs_n = Signal(intbv(0)[32:])
 
-    # These signals and the slice_shadower could be replaced by shadow signals
-    # when MyHDL 0.7 is released
-    cs_0 = Signal(HIGH)
-    cs_1 = Signal(HIGH)
-    cs_2 = Signal(HIGH)
-    cs_3 = Signal(HIGH)
-    cs_4 = Signal(HIGH)
-    cs_5 = Signal(HIGH)
-    cs_6 = Signal(HIGH)
-    cs_7 = Signal(HIGH)
-    cs_8 = Signal(HIGH)
-    cs_9 = Signal(HIGH)
-    cs_10 = Signal(HIGH)
-    cs_11 = Signal(HIGH)
-    cs_12 = Signal(HIGH)
-    cs_13 = Signal(HIGH)
-    cs_14 = Signal(HIGH)
-    cs_15 = Signal(HIGH)
-    cs_16 = Signal(HIGH)
-    cs_17 = Signal(HIGH)
-    cs_18 = Signal(HIGH)
-    cs_19 = Signal(HIGH)
-    cs_20 = Signal(HIGH)
-    cs_21 = Signal(HIGH)
-    cs_22 = Signal(HIGH)
-    cs_23 = Signal(HIGH)
-    cs_24 = Signal(HIGH)
-    cs_25 = Signal(HIGH)
-    cs_26 = Signal(HIGH)
-    cs_27 = Signal(HIGH)
-    cs_28 = Signal(HIGH)
-    cs_29 = Signal(HIGH)
-    cs_30 = Signal(HIGH)
-    cs_31 = Signal(HIGH)
-
-    @always_comb
-    def slice_shadower():
-        cs_0.next = cs_n[0]
-        cs_1.next = cs_n[1]
-        cs_2.next = cs_n[2]
-        cs_3.next = cs_n[3]
-        cs_4.next = cs_n[4]
-        cs_5.next = cs_n[5]
-        cs_6.next = cs_n[6]
-        cs_7.next = cs_n[7]
-        cs_8.next = cs_n[8]
-        cs_9.next = cs_n[9]
-        cs_10.next = cs_n[10]
-        cs_11.next = cs_n[11]
-        cs_12.next = cs_n[12]
-        cs_13.next = cs_n[13]
-        cs_14.next = cs_n[14]
-        cs_15.next = cs_n[15]
-        cs_16.next = cs_n[16]
-        cs_17.next = cs_n[17]
-        cs_18.next = cs_n[18]
-        cs_19.next = cs_n[19]
-        cs_20.next = cs_n[20]
-        cs_21.next = cs_n[21]
-        cs_22.next = cs_n[22]
-        cs_23.next = cs_n[23]
-        cs_24.next = cs_n[24]
-        cs_25.next = cs_n[25]
-        cs_26.next = cs_n[26]
-        cs_27.next = cs_n[27]
-        cs_28.next = cs_n[28]
-        cs_29.next = cs_n[29]
-        cs_30.next = cs_n[30]
-        cs_31.next = cs_n[31]
-
     # Gumstix SPI
     GumstixSPI_inst = GumstixSPI(sspi_miso, sspi_mosi, sspi_clk, sspi_cs,
                                  key, length, master_read_n, value_for_master, master_write_n, value_from_master,
@@ -200,9 +130,9 @@ def RobotIO(
     left_motor_speed  = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
     right_motor_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
     LeftMotor_inst    = MotorDriver(mot7_pwm, mot7_dir, mot7_brake,
-                                    clk25, left_motor_speed, cs_17, rst_n, optocoupled)
+                                    clk25, left_motor_speed, cs_n(17), rst_n, optocoupled)
     RightMotor_inst   = MotorDriver(mot8_pwm, mot8_dir, mot8_brake,
-                                    clk25, right_motor_speed, cs_18, rst_n, optocoupled)
+                                    clk25, right_motor_speed, cs_n(18), rst_n, optocoupled)
 
     # !Polar motors
     angle_motor_speed    = Signal(intbv(0, min = -2**9, max = 2**9)) # FIXME: 10-bit signed int
@@ -212,25 +142,25 @@ def RobotIO(
 
     # !Other motors (mot1-6)
     motors_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
-    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, motors_speed, cs_11, rst_n, optocoupled)
-    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, motors_speed, cs_12, rst_n, optocoupled)
-    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, motors_speed, cs_13, rst_n, optocoupled)
-    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, motors_speed, cs_14, rst_n, optocoupled)
-    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, motors_speed, cs_15, rst_n, optocoupled)
-    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, motors_speed, cs_16, rst_n, optocoupled)
+    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, motors_speed, cs_n(11), rst_n, optocoupled)
+    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, motors_speed, cs_n(12), rst_n, optocoupled)
+    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, motors_speed, cs_n(13), rst_n, optocoupled)
+    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, motors_speed, cs_n(14), rst_n, optocoupled)
+    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, motors_speed, cs_n(15), rst_n, optocoupled)
+    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, motors_speed, cs_n(16), rst_n, optocoupled)
 
     # TODO: ADC SPI
 
     # Servo motors
     servos_consign = Signal(intbv(0)[16:])
-    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, servos_consign, cs_21, rst_n, optocoupled)
-    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, servos_consign, cs_22, rst_n, optocoupled)
-    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, servos_consign, cs_23, rst_n, optocoupled)
-    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, servos_consign, cs_24, rst_n, optocoupled)
-    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, servos_consign, cs_25, rst_n, optocoupled)
-    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, servos_consign, cs_26, rst_n, optocoupled)
-    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, servos_consign, cs_27, rst_n, optocoupled)
-    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, servos_consign, cs_28, rst_n, optocoupled)
+    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, servos_consign, cs_n(21), rst_n, optocoupled)
+    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, servos_consign, cs_n(22), rst_n, optocoupled)
+    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, servos_consign, cs_n(23), rst_n, optocoupled)
+    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, servos_consign, cs_n(24), rst_n, optocoupled)
+    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, servos_consign, cs_n(25), rst_n, optocoupled)
+    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, servos_consign, cs_n(26), rst_n, optocoupled)
+    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, servos_consign, cs_n(27), rst_n, optocoupled)
+    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, servos_consign, cs_n(28), rst_n, optocoupled)
 
     # Angle control system
 
