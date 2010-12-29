@@ -87,9 +87,6 @@ def RobotIO(
     master_write_n = Signal(HIGH)
     value_from_master = Signal(intbv(0)[MAX_LENGTH*8:])
 
-    # 16-bit value sent by the Gumstix for many things (motor & servo consigns...)
-    gs_rxdata = Signal(intbv(0)[16:])
-
     # chip-wide active low reset signal
     rst_n = Signal(HIGH)
 
@@ -192,9 +189,9 @@ def RobotIO(
                                              distance_odometer_count, distance_odometer_speed)
 
     # !Other odometers (rc1 & rc2)
-    rc1_count = Signal(intbv(0)[16:])
+    rc1_count = Signal(intbv(0, min = -2**15, max = 2**15))
     rc1_speed = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc2_count = Signal(intbv(0)[16:])
+    rc2_count = Signal(intbv(0, min = -2**15, max = 2**15))
     rc2_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     Odometer1_inst = OdometerReader(rc1_count, rc1_speed, rc1_cha, rc1_chb, clk25, rst_n)
     Odometer2_inst = OdometerReader(rc2_count, rc2_speed, rc2_cha, rc2_chb, clk25, rst_n)
@@ -214,24 +211,26 @@ def RobotIO(
                                        left_motor_speed, right_motor_speed)
 
     # !Other motors (mot1-6)
-    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, gs_rxdata, cs_11, rst_n, optocoupled)
-    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, gs_rxdata, cs_12, rst_n, optocoupled)
-    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, gs_rxdata, cs_13, rst_n, optocoupled)
-    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, gs_rxdata, cs_14, rst_n, optocoupled)
-    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, gs_rxdata, cs_15, rst_n, optocoupled)
-    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, gs_rxdata, cs_16, rst_n, optocoupled)
+    motors_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, motors_speed, cs_11, rst_n, optocoupled)
+    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, motors_speed, cs_12, rst_n, optocoupled)
+    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, motors_speed, cs_13, rst_n, optocoupled)
+    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, motors_speed, cs_14, rst_n, optocoupled)
+    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, motors_speed, cs_15, rst_n, optocoupled)
+    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, motors_speed, cs_16, rst_n, optocoupled)
 
     # TODO: ADC SPI
 
     # Servo motors
-    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, gs_rxdata, cs_21, rst_n, optocoupled)
-    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, gs_rxdata, cs_22, rst_n, optocoupled)
-    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, gs_rxdata, cs_23, rst_n, optocoupled)
-    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, gs_rxdata, cs_24, rst_n, optocoupled)
-    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, gs_rxdata, cs_25, rst_n, optocoupled)
-    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, gs_rxdata, cs_26, rst_n, optocoupled)
-    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, gs_rxdata, cs_27, rst_n, optocoupled)
-    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, gs_rxdata, cs_28, rst_n, optocoupled)
+    servos_consign = Signal(intbv(0)[16:])
+    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, servos_consign, cs_21, rst_n, optocoupled)
+    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, servos_consign, cs_22, rst_n, optocoupled)
+    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, servos_consign, cs_23, rst_n, optocoupled)
+    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, servos_consign, cs_24, rst_n, optocoupled)
+    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, servos_consign, cs_25, rst_n, optocoupled)
+    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, servos_consign, cs_26, rst_n, optocoupled)
+    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, servos_consign, cs_27, rst_n, optocoupled)
+    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, servos_consign, cs_28, rst_n, optocoupled)
 
     # Angle control system
 
@@ -298,29 +297,29 @@ def RobotIO(
             if master_read_n == LOW:
                 value_for_master.next[:] = 0
                 if key == 0x11:
-                    value_for_master.next[len(rc1_count):] = rc1_count
+                    value_for_master.next = rc1_count[len(rc1_count):]
                 elif key == 0x12:
-                    value_for_master.next[len(rc2_count):] = rc2_count
+                    value_for_master.next = rc2_count[len(rc2_count):]
                 elif key == 0x13:
-                    value_for_master.next[len(left_odometer_count):] = left_odometer_count
+                    value_for_master.next = left_odometer_count[len(left_odometer_count):]
                 elif key == 0x14:
-                    value_for_master.next[len(right_odometer_count):] = right_odometer_count
+                    value_for_master.next = right_odometer_count[len(right_odometer_count):]
                 elif key == 0x15:
-                    value_for_master.next[len(angle_odometer_count):] = angle_odometer_count
+                    value_for_master.next = angle_odometer_count[len(angle_odometer_count):]
                 elif key == 0x16:
-                    value_for_master.next[len(distance_odometer_count):] = distance_odometer_count
+                    value_for_master.next = distance_odometer_count[len(distance_odometer_count):]
                 elif key == 0x21:
-                    value_for_master.next[len(rc1_speed):] = rc1_speed
+                    value_for_master.next = rc1_speed[len(rc1_speed):]
                 elif key == 0x22:
-                    value_for_master.next[len(rc2_speed):] = rc2_speed
+                    value_for_master.next = rc2_speed[len(rc2_speed):]
                 elif key == 0x23:
-                    value_for_master.next[len(left_odometer_speed):] = left_odometer_speed
+                    value_for_master.next = left_odometer_speed[len(left_odometer_speed):]
                 elif key == 0x24:
-                    value_for_master.next[len(right_odometer_speed):] = right_odometer_speed
+                    value_for_master.next = right_odometer_speed[len(right_odometer_speed):]
                 elif key == 0x25:
-                    value_for_master.next[len(angle_odometer_speed):] = angle_odometer_speed
+                    value_for_master.next = angle_odometer_speed[len(angle_odometer_speed):]
                 elif key == 0x26:
-                    value_for_master.next[len(distance_odometer_speed):] = distance_odometer_speed
+                    value_for_master.next = distance_odometer_speed[len(distance_odometer_speed):]
                 elif key == 0x31:
                     value_for_master.next[0] = ext1_0
                     value_for_master.next[1] = ext1_1
@@ -416,12 +415,12 @@ def RobotIO(
 
             # Motors
             elif 0x91 <= key and key <= 0x96:
-                gs_rxdata.next = value_from_master[len(gs_rxdata):]
+                motors_speed.next = value_from_master[len(motors_speed):].signed()
                 cs_n.next[int(key) - 0x86] = 0 # 11 to 16
 
             # Servos
             elif 0xA1 <= key and key <= 0xA8:
-                gs_rxdata.next = value_from_master[len(gs_rxdata):]
+                servos_consign.next = value_from_master[len(servos_consign):]
                 cs_n.next[int(key) - 0x8C] = 0 # 21 to 28
 
             # Angle control system

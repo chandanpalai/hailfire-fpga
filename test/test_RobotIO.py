@@ -367,7 +367,7 @@ class TestRobotIO(unittest.TestCase):
         def get_read_ext_port_command(number):
             """ Return an intbv suitable to be sent to the slave to read ext[number] port """
             ret = intbv(0)[24:]
-            ret[24:16] = 0x20 + number  # read ext port (1 to 7)
+            ret[24:16] = 0x30 + number  # read ext port (1 to 7)
             ret[16:8] = 1               # expect 1 byte
             return ret
 
@@ -456,7 +456,7 @@ class TestRobotIO(unittest.TestCase):
             master_to_slave = get_read_rc_port_command(number)
             slave_to_master = intbv(0)
             yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
-            self.assertEquals(slave_to_master[16:], expected_data)
+            self.assertEquals(slave_to_master[16:].signed(), expected_data)
             print 'done'
 
         def read_rc_ports(expected_datas):
@@ -468,7 +468,7 @@ class TestRobotIO(unittest.TestCase):
             slave_to_master = intbv(0)
             yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
             for i in downrange(5, 1):
-                self.assertEquals(slave_to_master[i*32-16:(i-1)*32], expected_datas[i])
+                self.assertEquals(slave_to_master[i*32-16:(i-1)*32].signed(), expected_datas[i])
             print 'done'
 
         def test_rc_ports():
@@ -480,7 +480,7 @@ class TestRobotIO(unittest.TestCase):
             yield set_rc_ports(rc_port_forwards, rc_port_backwards)
 
             # Expected results
-            expected_datas = [intbv(rc_port_forwards[i] - rc_port_backwards[i])[16:] for i in range(5)]
+            expected_datas = [intbv(rc_port_forwards[i] - rc_port_backwards[i], min = -2**15, max = 2**15) for i in range(5)]
 
             # Read rc ports separately
             for i in range(1, 5):
@@ -494,79 +494,75 @@ class TestRobotIO(unittest.TestCase):
         # Motors
         #
 
-        def get_write_motor_command(number, consign):
-            """ Return an intbv suitable to be sent to the slave to set motor[number] consign """
+        def get_write_motor_command(number, speed):
+            """ Return an intbv suitable to be sent to the slave to set motor[number] speed """
             ret = intbv(0)[32:]
-            ret[32:24] = 0x90 + number  # set motor consign (1 to 8)
+            ret[32:24] = 0x90 + number  # set motor speed (1 to 6)
             ret[24:16] = 2              # send 2 bytes
-            ret[16:] = consign          # the value is the new consign
+            ret[11:] = speed[11:]       # the value is the new speed
             return ret
 
-        def set_motor_consign(number, consign):
-            """ Set motor[number] consign """
+        def set_motor_speed(number, speed):
+            """ Set motor[number] speed """
             print 'set motor:', number, '...',
-            master_to_slave = get_write_motor_command(number, consign)
+            master_to_slave = get_write_motor_command(number, speed)
             slave_to_master = intbv(0)
             yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
             print 'done'
 
-        def set_motors_consigns(consigns):
-            """ Set all motors consigns in one SPI transfer """
+        def set_motors_speeds(speeds):
+            """ Set all motors speeds in one SPI transfer """
             print 'set all motors'
-            master_to_slave = get_write_motor_command(8, consigns[8])
-            for i in downrange(8, 1):
-                master_to_slave = concat(master_to_slave, get_write_motor_command(i, consigns[i]))
+            master_to_slave = get_write_motor_command(6, speeds[6])
+            for i in downrange(6, 1):
+                master_to_slave = concat(master_to_slave, get_write_motor_command(i, speeds[i]))
             slave_to_master = intbv(0)
             yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
             print 'done'
 
-        def check_motor_duty_cycle(number, consign):
-            """ Checks that the duty cycle of the motor[number] really corresponds to consign[10:] """
+        def check_motor_duty_cycle(number, speed):
+            """ Checks that the duty cycle of the motor[number] really corresponds to speed[10:] """
             print 'check motor', number
-            lines = [None, mot1_pwm, mot2_pwm, mot3_pwm, mot4_pwm, mot5_pwm, mot6_pwm, mot7_pwm, mot8_pwm]
+            lines = [None, mot1_pwm, mot2_pwm, mot3_pwm, mot4_pwm, mot5_pwm, mot6_pwm]
             count = intbv(0)
 
             # First period is not correct as the counter had already started
-            # before the consign was given. Start testing at the second period
+            # before the speed was given. Start testing at the second period
             yield lines[number].negedge # wait for end of PWM waveform of the first period
             yield lines[number].posedge # wait for the beginning of the period
 
             yield count_high(lines[number], clk25, count)
-            self.assertEquals(count, consign[10:])
+            self.assertEquals(count, min(abs(speed), speed.max - 1))
 
         def test_motors():
-            # Generate random consigns for motors
-            consigns = [intbv(randrange(2**10))[16:] for i in range(9)]
+            # Generate random speeds for motors
+            speeds = [intbv(randrange(-2**10, 2**10), min = -2**10, max = 2**10) for i in range(7)]
 
-            # Set motor consigns one at a time
-            for i in range(1, 9):
-                yield set_motor_consign(i, consigns[i])
-
-            # Check actual duty cycles
-            yield join(check_motor_duty_cycle(1, consigns[1]),
-                       check_motor_duty_cycle(2, consigns[2]),
-                       check_motor_duty_cycle(3, consigns[3]),
-                       check_motor_duty_cycle(4, consigns[4]),
-                       check_motor_duty_cycle(5, consigns[5]),
-                       check_motor_duty_cycle(6, consigns[6]),
-                       check_motor_duty_cycle(7, consigns[7]),
-                       check_motor_duty_cycle(8, consigns[8]))
-
-            # Regen random consigns
-            consigns = [intbv(randrange(2**10))[16:] for i in range(9)]
-
-            # Set all motor consigns together
-            yield set_motors_consigns(consigns)
+            # Set motor speeds one at a time
+            for i in range(1, 7):
+                yield set_motor_speed(i, speeds[i])
 
             # Check actual duty cycles
-            yield join(check_motor_duty_cycle(1, consigns[1]),
-                       check_motor_duty_cycle(2, consigns[2]),
-                       check_motor_duty_cycle(3, consigns[3]),
-                       check_motor_duty_cycle(4, consigns[4]),
-                       check_motor_duty_cycle(5, consigns[5]),
-                       check_motor_duty_cycle(6, consigns[6]),
-                       check_motor_duty_cycle(7, consigns[7]),
-                       check_motor_duty_cycle(8, consigns[8]))
+            yield join(check_motor_duty_cycle(1, speeds[1]),
+                       check_motor_duty_cycle(2, speeds[2]),
+                       check_motor_duty_cycle(3, speeds[3]),
+                       check_motor_duty_cycle(4, speeds[4]),
+                       check_motor_duty_cycle(5, speeds[5]),
+                       check_motor_duty_cycle(6, speeds[6]))
+
+            # Regen random speeds
+            speeds = [intbv(randrange(-2**10, 2**10), min = -2**10, max = 2**10) for i in range(7)]
+
+            # Set all motor speeds together
+            yield set_motors_speeds(speeds)
+
+            # Check actual duty cycles
+            yield join(check_motor_duty_cycle(1, speeds[1]),
+                       check_motor_duty_cycle(2, speeds[2]),
+                       check_motor_duty_cycle(3, speeds[3]),
+                       check_motor_duty_cycle(4, speeds[4]),
+                       check_motor_duty_cycle(5, speeds[5]),
+                       check_motor_duty_cycle(6, speeds[6]))
 
 
         #
