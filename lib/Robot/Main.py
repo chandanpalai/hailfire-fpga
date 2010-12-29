@@ -1,4 +1,4 @@
-from myhdl import Signal, intbv, always, always_comb, instances
+from myhdl import ConcatSignal, Signal, intbv, always, always_comb, instances
 from Robot.ControlSystem.Filter.PID import PIDFilter
 from Robot.ControlSystem.Filter.Ramp import RampFilter
 from Robot.ControlSystem.Manager import ControlSystemManager
@@ -218,6 +218,15 @@ def RobotIO(
                                         angle_consign,
                                         angle_enable)
 
+    # EXT ports
+    ext1_port = ConcatSignal(ext1_7, ext1_6, ext1_5, ext1_4, ext1_3, ext1_2, ext1_1, ext1_0)
+    ext2_port = ConcatSignal(ext2_7, ext2_6, ext2_5, ext2_4, ext2_3, ext2_2, ext2_1, ext2_0)
+    ext3_port = ConcatSignal(ext3_7, ext3_6, ext3_5, ext3_4, ext3_3, ext3_2, ext3_1, ext3_0)
+    ext4_port = ConcatSignal(ext4_7, ext4_6, ext4_5, ext4_4, ext4_3, ext4_2, ext4_1, ext4_0)
+    ext5_port = ConcatSignal(ext5_7, ext5_6, ext5_5, ext5_4, ext5_3, ext5_2, ext5_1, ext5_0)
+    ext6_port = ConcatSignal(ext6_7, ext6_6, ext6_5, ext6_4, ext6_3, ext6_2, ext6_1, ext6_0)
+    ext7_port = ConcatSignal(ext7_7, ext7_6, ext7_5, ext7_4, ext7_3, ext7_2, ext7_1, ext7_0)
+
     # Master reads: 0x01 <= key <= 0x7F
     @always(clk25.posedge, rst_n.negedge)
     def GumstixRead():
@@ -251,68 +260,19 @@ def RobotIO(
                 elif key == 0x26:
                     value_for_master.next = distance_odometer_speed[len(distance_odometer_speed):]
                 elif key == 0x31:
-                    value_for_master.next[0] = ext1_0
-                    value_for_master.next[1] = ext1_1
-                    value_for_master.next[2] = ext1_2
-                    value_for_master.next[3] = ext1_3
-                    value_for_master.next[4] = ext1_4
-                    value_for_master.next[5] = ext1_5
-                    value_for_master.next[6] = ext1_6
-                    value_for_master.next[7] = ext1_7
+                    value_for_master.next = ext1_port
                 elif key == 0x32:
-                    value_for_master.next[0] = ext2_0
-                    value_for_master.next[1] = ext2_1
-                    value_for_master.next[2] = ext2_2
-                    value_for_master.next[3] = ext2_3
-                    value_for_master.next[4] = ext2_4
-                    value_for_master.next[5] = ext2_5
-                    value_for_master.next[6] = ext2_6
-                    value_for_master.next[7] = ext2_7
+                    value_for_master.next = ext2_port
                 elif key == 0x33:
-                    value_for_master.next[0] = ext3_0
-                    value_for_master.next[1] = ext3_1
-                    value_for_master.next[2] = ext3_2
-                    value_for_master.next[3] = ext3_3
-                    value_for_master.next[4] = ext3_4
-                    value_for_master.next[5] = ext3_5
-                    value_for_master.next[6] = ext3_6
-                    value_for_master.next[7] = ext3_7
+                    value_for_master.next = ext3_port
                 elif key == 0x34:
-                    value_for_master.next[0] = ext4_0
-                    value_for_master.next[1] = ext4_1
-                    value_for_master.next[2] = ext4_2
-                    value_for_master.next[3] = ext4_3
-                    value_for_master.next[4] = ext4_4
-                    value_for_master.next[5] = ext4_5
-                    value_for_master.next[6] = ext4_6
-                    value_for_master.next[7] = ext4_7
+                    value_for_master.next = ext4_port
                 elif key == 0x35:
-                    value_for_master.next[0] = ext5_0
-                    value_for_master.next[1] = ext5_1
-                    value_for_master.next[2] = ext5_2
-                    value_for_master.next[3] = ext5_3
-                    value_for_master.next[4] = ext5_4
-                    value_for_master.next[5] = ext5_5
-                    value_for_master.next[6] = ext5_6
-                    value_for_master.next[7] = ext5_7
+                    value_for_master.next = ext5_port
                 elif key == 0x36:
-                    value_for_master.next[0] = ext6_0
-                    value_for_master.next[1] = ext6_1
-                    value_for_master.next[2] = ext6_2
-                    value_for_master.next[3] = ext6_3
-                    value_for_master.next[4] = ext6_4
-                    value_for_master.next[5] = ext6_5
-                    value_for_master.next[6] = ext6_6
-                    value_for_master.next[7] = ext6_7
+                    value_for_master.next = ext6_port
                 elif key == 0x37:
-                    value_for_master.next[0] = ext7_0
-                    value_for_master.next[1] = ext7_1
-                    value_for_master.next[2] = ext7_2
-                    value_for_master.next[3] = ext7_3
-                    value_for_master.next[4] = ext7_4
-                    value_for_master.next[5] = ext7_5
-                    value_for_master.next[6] = ext7_6
-                    value_for_master.next[7] = ext7_7
+                    value_for_master.next = ext7_port
                 else:
                     # Dummy value sent when key is unknown.
                     # The value is fixed. The master read 'length'
