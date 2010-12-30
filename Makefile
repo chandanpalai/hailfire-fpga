@@ -6,6 +6,7 @@ build:
 test:
 	(cd test; python test_AngleDistanceToLeftRight.py)
 	(cd test; python test_ControlSystemManager.py)
+	(cd test; python test_Counter.py)
 	(cd test; python test_GumstixSPI.py)
 	(cd test; python test_LeftRightToAngleDistance.py)
 	(cd test; python test_MotorDriver.py)
