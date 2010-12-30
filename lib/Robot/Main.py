@@ -97,9 +97,9 @@ def RobotIO(
                                  clk25, rst_n)
 
     # !Left/Right odometers (rc3 & rc4)
-    left_odometer_count  = Signal(intbv(0, min = -2**15, max = 2**15))
+    left_odometer_count  = Signal(intbv(0, min = -2**31, max = 2**31))
     left_odometer_speed  = Signal(intbv(0, min = MIN_ODOMETER_SPEED, max = MAX_ODOMETER_SPEED))
-    right_odometer_count = Signal(intbv(0, min = -2**15, max = 2**15))
+    right_odometer_count = Signal(intbv(0, min = -2**31, max = 2**31))
     right_odometer_speed = Signal(intbv(0, min = MIN_ODOMETER_SPEED, max = MAX_ODOMETER_SPEED))
     LeftOdometer_inst    = OdometerReader(left_odometer_count, left_odometer_speed,
                                           rc3_cha, rc3_chb, clk25, rst_n)
@@ -107,9 +107,9 @@ def RobotIO(
                                           rc4_cha, rc4_chb, clk25, rst_n)
 
     # !Polar odometers
-    angle_odometer_count    = Signal(intbv(0, min = -2**15, max = 2**15))
+    angle_odometer_count    = Signal(intbv(0, min = -2**31, max = 2**31))
     angle_odometer_speed    = Signal(intbv(0, min = MIN_ANGLE_SPEED, max = MAX_ANGLE_SPEED))
-    distance_odometer_count = Signal(intbv(0, min = -2**15, max = 2**15))
+    distance_odometer_count = Signal(intbv(0, min = -2**31, max = 2**31))
     distance_odometer_speed = Signal(intbv(0, min = MIN_DISTANCE_SPEED, max = MAX_DISTANCE_SPEED))
     PolarOdometers_inst     = PolarOdometers(left_odometer_count, left_odometer_speed,
                                              right_odometer_count, right_odometer_speed,
@@ -117,9 +117,9 @@ def RobotIO(
                                              distance_odometer_count, distance_odometer_speed)
 
     # !Other odometers (rc1 & rc2)
-    rc1_count = Signal(intbv(0, min = -2**15, max = 2**15))
+    rc1_count = Signal(intbv(0, min = -2**31, max = 2**31))
     rc1_speed = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc2_count = Signal(intbv(0, min = -2**15, max = 2**15))
+    rc2_count = Signal(intbv(0, min = -2**31, max = 2**31))
     rc2_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     Odometer1_inst = OdometerReader(rc1_count, rc1_speed, rc1_cha, rc1_chb, clk25, rst_n)
     Odometer2_inst = OdometerReader(rc2_count, rc2_speed, rc2_cha, rc2_chb, clk25, rst_n)
