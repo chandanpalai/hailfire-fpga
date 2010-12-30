@@ -197,7 +197,7 @@ def RobotIO(
                                                   max = angle_consign_filter_output.max - angle_feedback_filter_output.min))
     angle_correct_filter_output = Signal(intbv(0, min = angle_motor_speed.min,
                                                   max = angle_motor_speed.max))
-    angle_correct_filter_gain_P    = Signal(intbv(0)[8:]) # FIXME: bit width
+    angle_correct_filter_gain_P    = Signal(intbv(1)[8:]) # FIXME: bit width
     angle_correct_filter_gain_I    = Signal(intbv(0)[8:]) # FIXME: bit width
     angle_correct_filter_gain_D    = Signal(intbv(0)[8:]) # FIXME: bit width
     angle_correct_filter_out_shift = Signal(intbv(0)[8:]) # FIXME: bit width
@@ -224,6 +224,60 @@ def RobotIO(
                                         angle_motor_speed,
                                         angle_odometer_speed,
                                         angle_consign)
+
+    # Distance control system
+
+    ## Ramp consign filter
+    distance_consign_filter_input  = Signal(intbv(0, min = MIN_DISTANCE_SPEED, max = MAX_DISTANCE_SPEED))
+    distance_consign_filter_output = Signal(intbv(0, min = MIN_DISTANCE_SPEED, max = MAX_DISTANCE_SPEED))
+    distance_max_acceleration      = Signal(intbv(0, min = 0, max = MAX_DISTANCE_ACCELERATION))
+    distance_max_deceleration      = Signal(intbv(0, min = 0, max = MAX_DISTANCE_DECELERATION))
+    DistanceRamp = RampFilter(distance_consign_filter_input,
+                              distance_consign_filter_output,
+                              distance_max_acceleration,
+                              distance_max_deceleration)
+
+    ## Fake filter on the feedback
+    distance_feedback_filter_input  = Signal(intbv(0, min = distance_odometer_speed.min,
+                                                      max = distance_odometer_speed.max))
+    distance_feedback_filter_output = Signal(intbv(0, min = distance_odometer_speed.min,
+                                                      max = distance_odometer_speed.max))
+    @always_comb
+    def fake_distance_feedback_filter():
+        distance_feedback_filter_output.next = distance_feedback_filter_input
+
+    ## PID correct filter
+    distance_correct_filter_input  = Signal(intbv(0, min = distance_consign_filter_output.min - distance_feedback_filter_output.max,
+                                                     max = distance_consign_filter_output.max - distance_feedback_filter_output.min))
+    distance_correct_filter_output = Signal(intbv(0, min = distance_motor_speed.min,
+                                                     max = distance_motor_speed.max))
+    distance_correct_filter_gain_P    = Signal(intbv(1)[8:]) # FIXME: bit width
+    distance_correct_filter_gain_I    = Signal(intbv(0)[8:]) # FIXME: bit width
+    distance_correct_filter_gain_D    = Signal(intbv(0)[8:]) # FIXME: bit width
+    distance_correct_filter_out_shift = Signal(intbv(0)[8:]) # FIXME: bit width
+    distance_correct_filter_max_I     = intbv(2**31) # FIXME: value
+    distance_correct_filter_max_D     = intbv(2**31) # FIXME: value
+    DistancePID = PIDFilter(distance_correct_filter_input,
+                            distance_correct_filter_output,
+                            distance_correct_filter_gain_P,
+                            distance_correct_filter_gain_I,
+                            distance_correct_filter_gain_D,
+                            distance_correct_filter_out_shift,
+                            distance_correct_filter_max_I,
+                            distance_correct_filter_max_D,
+                            rst_n)
+
+    ## Control system manager
+    distance_consign = Signal(intbv(0, min = MIN_ODOMETER_SPEED, max = MAX_ODOMETER_SPEED))
+    DistanceManager = ControlSystemManager(distance_consign_filter_input,
+                                           distance_consign_filter_output,
+                                           distance_correct_filter_input,
+                                           distance_correct_filter_output,
+                                           distance_feedback_filter_input,
+                                           distance_feedback_filter_output,
+                                           distance_motor_speed,
+                                           distance_odometer_speed,
+                                           distance_consign)
 
     # EXT ports
     ext1_port = ConcatSignal(ext1_7, ext1_6, ext1_5, ext1_4, ext1_3, ext1_2, ext1_1, ext1_0)
@@ -356,6 +410,22 @@ def RobotIO(
                 angle_correct_filter_gain_D.next = value_from_master[len(angle_correct_filter_gain_D):]
             elif key == 0xB7:
                 angle_correct_filter_out_shift.next = value_from_master[len(angle_correct_filter_out_shift):]
+
+            # Distance control system
+            elif key == 0xC1:
+                distance_consign.next = value_from_master[len(distance_consign):].signed()
+            elif key == 0xC2:
+                distance_max_acceleration.next = value_from_master[len(distance_max_deceleration):]
+            elif key == 0xC3:
+                distance_max_deceleration.next = value_from_master[len(distance_max_deceleration):]
+            elif key == 0xC4:
+                distance_correct_filter_gain_P.next = value_from_master[len(distance_correct_filter_gain_P):]
+            elif key == 0xC5:
+                distance_correct_filter_gain_I.next = value_from_master[len(distance_correct_filter_gain_I):]
+            elif key == 0xC6:
+                distance_correct_filter_gain_D.next = value_from_master[len(distance_correct_filter_gain_D):]
+            elif key == 0xC7:
+                distance_correct_filter_out_shift.next = value_from_master[len(distance_correct_filter_out_shift):]
 
             # Complete if-elif-else to have it converted to a case block
             else:
