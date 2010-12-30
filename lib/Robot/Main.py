@@ -132,8 +132,8 @@ def RobotIO(
                                     clk25, right_motor_speed, rst_n, optocoupled)
 
     # !Polar motors
-    angle_motor_speed    = Signal(intbv(0, min = -2**9, max = 2**9)) # FIXME: 10-bit signed int
-    distance_motor_speed = Signal(intbv(0, min = -2**9, max = 2**9)) # FIXME: 10-bit signed int
+    angle_motor_speed    = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    distance_motor_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
     PolarMotors_inst     = PolarMotors(angle_motor_speed, distance_motor_speed,
                                        left_motor_speed, right_motor_speed)
 
