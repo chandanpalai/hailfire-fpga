@@ -52,14 +52,22 @@ def OdometerReader(count, speed, a, b, clk25, rst_n):
             previous_b = b.val
 
     # Use count_en and count_dir to maintain the odometer count
-    count_counter = Counter(count, count_en, count_dir, Signal(HIGH), rst_n)
+    count_counter = Counter(count       = count,
+                            clk         = count_en,
+                            inc_or_dec  = count_dir,
+                            wrap_around = HIGH,
+                            rst_n       = rst_n)
 
     # Use count_en and count_dir to count the odometer ticks and compute the
     # odometer speed just like the odometer count (except wrap around)
     int_speed = Signal(intbv(0, min = speed.min, max = speed.max))
     speed_rst_n = Signal(HIGH)
-    speed_counter = Counter(int_speed, count_en, count_dir, Signal(LOW), speed_rst_n)
-    
+    speed_counter = Counter(count       = int_speed,
+                            clk         = count_en,
+                            inc_or_dec  = count_dir,
+                            wrap_around = LOW,
+                            rst_n       = speed_rst_n)
+
     # Copy the resulting speed count every 4ms (250Hz) and reset the counter
     # so that it restarts at 0. int_speed thus contain the number of ticks between
     # two resets, i.e. the speed.
