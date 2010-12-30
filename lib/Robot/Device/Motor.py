@@ -1,9 +1,10 @@
-from myhdl import Signal, intbv, always, instances
+from myhdl import Signal, always, always_comb, instances, intbv
 from Robot.Utils.Constants import LOW, HIGH
+from Robot.Utils.Counter import Counter
 
 CLK_DIVIDER = 2**10
 
-def MotorDriver(pwm, dir, en_n, clk25, speed, cs_n, rst_n, optocoupled):
+def MotorDriver(pwm, dir, en_n, clk25, speed, rst_n, optocoupled):
     """
 
     PWM signal generator with direction signal for DC motors.
@@ -11,14 +12,35 @@ def MotorDriver(pwm, dir, en_n, clk25, speed, cs_n, rst_n, optocoupled):
     The generated PWM frequency is approximately 25 KHz (25 MHz / 1024).
     The duty cycle can be fully controlled via a 11-bit speed input.
 
-    pwm -- output PWM signal
-    dir -- output direction signal
-    en_n -- active low output enable signal
-    clk25 -- 25 MHz clock input
-    speed -- 11-bit signed speed value in clock ticks
-    cs_n -- active low chip select (speed is read when active)
-    rst_n -- active low reset input (pwm and direction are reset when active)
-    optocoupled -- set to True if outputs should be inverted to account for optocouplers
+    pwm
+
+        Output PWM signal
+
+    dir
+
+        Output direction signal
+
+    en_n
+
+        Active low output enable signal
+
+    clk25
+
+
+        25 MHz clock input
+
+    speed
+
+        11-bit signed speed value in clock ticks
+
+    rst_n
+
+        Active low reset input (resets internal counter when active).
+        Use the speed input to reset the speed of the motor.
+
+    optocoupled
+
+        Set to True if outputs should be inverted to account for optocouplers.
 
     """
 
@@ -29,43 +51,45 @@ def MotorDriver(pwm, dir, en_n, clk25, speed, cs_n, rst_n, optocoupled):
     HIGH_OPTO = HIGH if not optocoupled else LOW
 
     # count to 1024 to generate a 25 kHz PWM (approximately)
-    cnt = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
+    count   = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
+    counter = Counter(count       = count,
+                      clk         = clk25,
+                      inc_or_dec  = HIGH,
+                      wrap_around = True,
+                      rst_n       = rst_n)
 
     # duty cycle is 0 to 1024 too
-    dcl = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
+    duty_cycle = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
 
-    @always(clk25.posedge, rst_n.negedge)
-    def HandleConsign():
-        """ Read speed, handle reset and increment counter """
-        if rst_n == LOW:
-            dcl.next = 0
-            dir.next = HIGH_OPTO
-            en_n.next = HIGH_OPTO
+    @always(speed)
+    def read_speed():
+        """ Extract duty cycle from speed input """
+        if speed >= 0:
+            duty_cycle.next = speed
+        elif -speed >= duty_cycle.max: # handle -1024 case
+            duty_cycle.next = intbv(duty_cycle.max - 1)
         else:
-            # handle new speed
-            if cs_n == LOW:
-                if speed >= 0:
-                    dcl.next = speed
-                    dir.next = HIGH_OPTO
-                elif -speed >= dcl.max: # handle -1024 case
-                    dcl.next = intbv(dcl.max - 1)
-                    dir.next = LOW_OPTO
-                else:
-                    dcl.next = -speed
-                    dir.next = LOW_OPTO
+            duty_cycle.next = -speed
 
-            # could use modulo but brings in a megawizard function
-            if cnt != cnt.max - 1:
-                cnt.next = cnt + 1
-            else:
-                cnt.next = 0
-
-    @always(cnt, dcl)
-    def DriveOutput():
-        """ Drive PWM output signal """
-        if cnt < dcl:
+    @always_comb
+    def drive_pwm():
+        """ Drive pwm output signal """
+        if count < duty_cycle:
             pwm.next = HIGH_OPTO
         else:
             pwm.next = LOW_OPTO
+
+    @always_comb
+    def drive_dir():
+        """ Drive dir output signal """
+        if speed >= 0:
+            dir.next = HIGH_OPTO
+        else:
+            dir.next = LOW_OPTO
+
+    @always(speed) # need to drive en_n so anything will do
+    def drive_en():
+        """ Drive en_n output signal """
+        en_n.next = HIGH
 
     return instances()

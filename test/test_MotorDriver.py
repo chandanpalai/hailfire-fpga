@@ -23,27 +23,20 @@ def TestBench(MotorTester):
     en_n = Signal(HIGH)
     clk = Signal(LOW)
     speed = Signal(intbv(0, min = -2**10, max = 2**10))
-    cs_n = Signal(HIGH)
     rst_n = Signal(HIGH)
 
     # instanciate modules
-    MotorDriver_inst = MotorDriver(pwm, dir, en_n, clk, speed, cs_n, rst_n, False)
-    MotorTester_inst = MotorTester(pwm, dir, en_n, clk, speed, cs_n, rst_n)
+    MotorDriver_inst = MotorDriver(pwm, dir, en_n, clk, speed, rst_n, False)
+    MotorTester_inst = MotorTester(pwm, dir, en_n, clk, speed, rst_n)
     ClkGen_inst = ClkGen(clk)
 
     return MotorDriver_inst, MotorTester_inst, ClkGen_inst
 
 class TestMotorDriver(unittest.TestCase):
 
-    def MotorTester(self, pwm, dir, en_n, clk, speed, cs_n, rst_n):
+    def MotorTester(self, pwm, dir, en_n, clk, speed, rst_n):
         def stimulus(dcl):
             speed.next = dcl
-
-            # read speed (pull cs_n for 1 clk period)
-            yield clk.posedge
-            cs_n.next = LOW
-            yield clk.posedge
-            cs_n.next = HIGH
 
         def check(dcl):
             count = intbv(0)

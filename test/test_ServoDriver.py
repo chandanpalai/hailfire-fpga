@@ -21,27 +21,20 @@ def TestBench(ServoTester):
     pwm = Signal(LOW)
     clk = Signal(LOW)
     consign = Signal(intbv(0)[16:])
-    cs_n = Signal(HIGH)
     rst_n = Signal(HIGH)
 
     # instanciate modules
-    ServoDriver_inst = ServoDriver(pwm, clk, consign, cs_n, rst_n, False)
-    ServoTester_inst = ServoTester(pwm, clk, consign, cs_n, rst_n)
+    ServoDriver_inst = ServoDriver(pwm, clk, consign, rst_n, False)
+    ServoTester_inst = ServoTester(pwm, clk, consign, rst_n)
     ClkGen_inst = ClkGen(clk)
 
     return ServoDriver_inst, ServoTester_inst, ClkGen_inst
 
 class TestServoDriver(unittest.TestCase):
 
-    def ServoTester(self, pwm, clk, consign, cs_n, rst_n):
+    def ServoTester(self, pwm, clk, consign, rst_n):
         def stimulus(dcl):
             consign.next = intbv(dcl)[16:] # duty cycle
-
-            # read consign (pull cs_n for 1 clk period)
-            yield clk.posedge
-            cs_n.next = LOW
-            yield clk.posedge
-            cs_n.next = HIGH
 
         def check(dcl):
             count = intbv(0)

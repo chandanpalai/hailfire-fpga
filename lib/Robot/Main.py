@@ -90,9 +90,6 @@ def RobotIO(
     # chip-wide active low reset signal
     rst_n = Signal(HIGH)
 
-    # chip select signals
-    cs_n = Signal(intbv(0)[32:])
-
     # Gumstix SPI
     GumstixSPI_inst = GumstixSPI(sspi_miso, sspi_mosi, sspi_clk, sspi_cs,
                                  key, length, master_read_n, value_for_master, master_write_n, value_from_master,
@@ -130,9 +127,9 @@ def RobotIO(
     left_motor_speed  = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
     right_motor_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
     LeftMotor_inst    = MotorDriver(mot7_pwm, mot7_dir, mot7_brake,
-                                    clk25, left_motor_speed, cs_n(17), rst_n, optocoupled)
+                                    clk25, left_motor_speed, rst_n, optocoupled)
     RightMotor_inst   = MotorDriver(mot8_pwm, mot8_dir, mot8_brake,
-                                    clk25, right_motor_speed, cs_n(18), rst_n, optocoupled)
+                                    clk25, right_motor_speed, rst_n, optocoupled)
 
     # !Polar motors
     angle_motor_speed    = Signal(intbv(0, min = -2**9, max = 2**9)) # FIXME: 10-bit signed int
@@ -141,26 +138,38 @@ def RobotIO(
                                        left_motor_speed, right_motor_speed)
 
     # !Other motors (mot1-6)
-    motors_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
-    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, motors_speed, cs_n(11), rst_n, optocoupled)
-    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, motors_speed, cs_n(12), rst_n, optocoupled)
-    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, motors_speed, cs_n(13), rst_n, optocoupled)
-    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, motors_speed, cs_n(14), rst_n, optocoupled)
-    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, motors_speed, cs_n(15), rst_n, optocoupled)
-    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, motors_speed, cs_n(16), rst_n, optocoupled)
+    motor1_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    motor2_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    motor3_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    motor4_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    motor5_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    motor6_speed = Signal(intbv(0, min = MIN_MOTOR_SPEED, max = MAX_MOTOR_SPEED))
+    Motor1_inst = MotorDriver(mot1_pwm, mot1_dir, mot1_brake, clk25, motor1_speed, rst_n, optocoupled)
+    Motor2_inst = MotorDriver(mot2_pwm, mot2_dir, mot2_brake, clk25, motor2_speed, rst_n, optocoupled)
+    Motor3_inst = MotorDriver(mot3_pwm, mot3_dir, mot3_brake, clk25, motor3_speed, rst_n, optocoupled)
+    Motor4_inst = MotorDriver(mot4_pwm, mot4_dir, mot4_brake, clk25, motor4_speed, rst_n, optocoupled)
+    Motor5_inst = MotorDriver(mot5_pwm, mot5_dir, mot5_brake, clk25, motor5_speed, rst_n, optocoupled)
+    Motor6_inst = MotorDriver(mot6_pwm, mot6_dir, mot6_brake, clk25, motor6_speed, rst_n, optocoupled)
 
     # TODO: ADC SPI
 
     # Servo motors
-    servos_consign = Signal(intbv(0)[16:])
-    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, servos_consign, cs_n(21), rst_n, optocoupled)
-    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, servos_consign, cs_n(22), rst_n, optocoupled)
-    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, servos_consign, cs_n(23), rst_n, optocoupled)
-    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, servos_consign, cs_n(24), rst_n, optocoupled)
-    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, servos_consign, cs_n(25), rst_n, optocoupled)
-    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, servos_consign, cs_n(26), rst_n, optocoupled)
-    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, servos_consign, cs_n(27), rst_n, optocoupled)
-    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, servos_consign, cs_n(28), rst_n, optocoupled)
+    servo1_consign = Signal(intbv(0)[16:])
+    servo2_consign = Signal(intbv(0)[16:])
+    servo3_consign = Signal(intbv(0)[16:])
+    servo4_consign = Signal(intbv(0)[16:])
+    servo5_consign = Signal(intbv(0)[16:])
+    servo6_consign = Signal(intbv(0)[16:])
+    servo7_consign = Signal(intbv(0)[16:])
+    servo8_consign = Signal(intbv(0)[16:])
+    Servo1_ch0_inst = ServoDriver(pwm1_ch0, clk25, servo1_consign, rst_n, optocoupled)
+    Servo1_ch1_inst = ServoDriver(pwm1_ch1, clk25, servo2_consign, rst_n, optocoupled)
+    Servo1_ch2_inst = ServoDriver(pwm1_ch2, clk25, servo3_consign, rst_n, optocoupled)
+    Servo1_ch3_inst = ServoDriver(pwm1_ch3, clk25, servo4_consign, rst_n, optocoupled)
+    Servo1_ch4_inst = ServoDriver(pwm1_ch4, clk25, servo5_consign, rst_n, optocoupled)
+    Servo1_ch5_inst = ServoDriver(pwm1_ch5, clk25, servo6_consign, rst_n, optocoupled)
+    Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, servo7_consign, rst_n, optocoupled)
+    Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, servo8_consign, rst_n, optocoupled)
 
     # Angle control system
 
@@ -283,7 +292,6 @@ def RobotIO(
     # Not sensitive to rst_n as it is driven therein.
     @always(clk25.posedge)
     def GumstixWrite():
-        cs_n.next = intbv(0xFFFFFFFF)[32:]
         rst_n.next = HIGH
 
         if master_write_n == LOW:
@@ -304,32 +312,57 @@ def RobotIO(
                 led_red_n.next = not value_from_master[0]
 
             # Motors
-            elif 0x91 <= key and key <= 0x96:
-                motors_speed.next = value_from_master[len(motors_speed):].signed()
-                cs_n.next[key - 0x86] = 0 # 11 to 16
+            elif key == 0x91:
+                motor1_speed.next = value_from_master[len(motor1_speed):].signed()
+            elif key == 0x92:
+                motor2_speed.next = value_from_master[len(motor2_speed):].signed()
+            elif key == 0x93:
+                motor3_speed.next = value_from_master[len(motor3_speed):].signed()
+            elif key == 0x94:
+                motor4_speed.next = value_from_master[len(motor4_speed):].signed()
+            elif key == 0x95:
+                motor5_speed.next = value_from_master[len(motor5_speed):].signed()
+            elif key == 0x96:
+                motor6_speed.next = value_from_master[len(motor6_speed):].signed()
 
             # Servos
-            elif 0xA1 <= key and key <= 0xA8:
-                servos_consign.next = value_from_master[len(servos_consign):]
-                cs_n.next[key - 0x8C] = 0 # 21 to 28
+            elif key == 0xA1:
+                servo1_consign.next = value_from_master[len(servo1_consign):]
+            elif key == 0xA2:
+                servo2_consign.next = value_from_master[len(servo2_consign):]
+            elif key == 0xA3:
+                servo3_consign.next = value_from_master[len(servo3_consign):]
+            elif key == 0xA4:
+                servo4_consign.next = value_from_master[len(servo4_consign):]
+            elif key == 0xA5:
+                servo5_consign.next = value_from_master[len(servo5_consign):]
+            elif key == 0xA6:
+                servo6_consign.next = value_from_master[len(servo6_consign):]
+            elif key == 0xA7:
+                servo7_consign.next = value_from_master[len(servo7_consign):]
+            elif key == 0xA8:
+                servo8_consign.next = value_from_master[len(servo8_consign):]
 
             # Angle control system
-            elif 0xB0 <= key and key <= 0xB7:
-                if key == 0xB0:
-                    angle_enable.next = value_from_master[0]
-                elif key == 0xB1:
-                    angle_consign.next = value_from_master[len(angle_consign):].signed()
-                elif key == 0xB2:
-                    angle_max_acceleration.next = value_from_master[len(angle_max_deceleration):]
-                elif key == 0xB3:
-                    angle_max_deceleration.next = value_from_master[len(angle_max_deceleration):]
-                elif key == 0xB4:
-                    angle_correct_filter_gain_P.next = value_from_master[len(angle_correct_filter_gain_P):]
-                elif key == 0xB5:
-                    angle_correct_filter_gain_I.next = value_from_master[len(angle_correct_filter_gain_I):]
-                elif key == 0xB6:
-                    angle_correct_filter_gain_D.next = value_from_master[len(angle_correct_filter_gain_D):]
-                elif key == 0xB7:
-                    angle_correct_filter_out_shift.next = value_from_master[len(angle_correct_filter_out_shift):]
+            elif key == 0xB0:
+                angle_enable.next = value_from_master[0]
+            elif key == 0xB1:
+                angle_consign.next = value_from_master[len(angle_consign):].signed()
+            elif key == 0xB2:
+                angle_max_acceleration.next = value_from_master[len(angle_max_deceleration):]
+            elif key == 0xB3:
+                angle_max_deceleration.next = value_from_master[len(angle_max_deceleration):]
+            elif key == 0xB4:
+                angle_correct_filter_gain_P.next = value_from_master[len(angle_correct_filter_gain_P):]
+            elif key == 0xB5:
+                angle_correct_filter_gain_I.next = value_from_master[len(angle_correct_filter_gain_I):]
+            elif key == 0xB6:
+                angle_correct_filter_gain_D.next = value_from_master[len(angle_correct_filter_gain_D):]
+            elif key == 0xB7:
+                angle_correct_filter_out_shift.next = value_from_master[len(angle_correct_filter_out_shift):]
+
+            # Complete if-elif-else to have it converted to a case block
+            else:
+                pass
 
     return instances()

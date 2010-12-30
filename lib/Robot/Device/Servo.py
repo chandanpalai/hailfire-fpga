@@ -1,10 +1,13 @@
-from myhdl import Signal, intbv, always, instances
+from myhdl import Signal, always_comb, instances, intbv
 from Robot.Utils.Constants import LOW, HIGH
+from Robot.Utils.Counter import Counter
 
 CLK_DIVIDER = 500000
 
-def ServoDriver(pwm, clk25, consign, cs_n, rst_n, optocoupled):
-    """ PWM signal generator for servo motors
+def ServoDriver(pwm, clk25, consign, rst_n, optocoupled):
+    """
+
+    PWM signal generator for servo motors
 
     Uses a 25 MHz clock to generate a PWM suitable for servo motors.
 
@@ -23,45 +26,47 @@ def ServoDriver(pwm, clk25, consign, cs_n, rst_n, optocoupled):
     cycle consign (0 to 65535, with values from 1 to 12500 and from 62500
     to 65535 being useless).
 
-    pwm -- output signal
-    clk25 -- 25 MHz clock input
-    consign -- 16-bit consign value in clock ticks
-    cs_n -- active low chip select (consign is read when active)
-    rst_n -- active low reset input (pwm is reset when active)
-    optocoupled -- set to True if output should be inverted to account for optocoupler
+    pwm
+
+        Output PWM signal
+
+    clk25
+
+        25 MHz clock input
+
+    consign
+
+        16-bit unsigned consign value in clock ticks
+
+    rst_n
+
+        Active low reset input (resets internal counter when active).
+        Use the consign input to reset the position of the servo.
+
+    optocoupled
+
+        Set to True if output should be inverted to account for optocoupler.
 
     """
+
+    assert consign.min >= 0 and consign.max <= 2**16, 'wrong consign constraints'
 
     # account for optocouplers
     LOW_OPTO  = LOW if not optocoupled else HIGH
     HIGH_OPTO = HIGH if not optocoupled else LOW
 
     # count to 500000 to generate a 50 Hz PWM: 25000000/500000 = 50
-    cnt = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
+    count   = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
+    counter = Counter(count       = count,
+                      clk         = clk25,
+                      inc_or_dec  = HIGH,
+                      wrap_around = True,
+                      rst_n       = rst_n)
 
-    # duty cycle is a 16-bit integer
-    dcl = Signal(intbv(0)[16:])
-
-    @always(clk25.posedge, rst_n.negedge)
-    def HandleConsign():
-        """ Read consign, handle reset and increment counter """
-        if rst_n == LOW:
-            dcl.next = 0
-        else:
-            # handle new consign
-            if cs_n == LOW:
-                dcl.next = consign
-
-            # could use modulo but brings in a megawizard function
-            if cnt == CLK_DIVIDER - 1:
-                cnt.next = 0
-            else:
-                cnt.next = cnt + 1
-
-    @always(cnt, dcl)
-    def DriveOutput():
-        """ Drive PWM output signal """
-        if cnt < dcl:
+    @always_comb
+    def drive_pwm():
+        """ Drive pwm output signal """
+        if count < consign:
             pwm.next = HIGH_OPTO
         else:
             pwm.next = LOW_OPTO
