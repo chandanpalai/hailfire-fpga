@@ -55,7 +55,7 @@ def OdometerReader(count, speed, a, b, clk25, rst_n):
     count_counter = Counter(count       = count,
                             clk         = count_en,
                             inc_or_dec  = count_dir,
-                            wrap_around = HIGH,
+                            wrap_around = True,
                             rst_n       = rst_n)
 
     # Use count_en and count_dir to count the odometer ticks and compute the
@@ -65,7 +65,7 @@ def OdometerReader(count, speed, a, b, clk25, rst_n):
     speed_counter = Counter(count       = int_speed,
                             clk         = count_en,
                             inc_or_dec  = count_dir,
-                            wrap_around = LOW,
+                            wrap_around = False,
                             rst_n       = speed_rst_n)
 
     # Copy the resulting speed count every 4ms (250Hz) and reset the counter

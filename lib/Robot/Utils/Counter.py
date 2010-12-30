@@ -40,15 +40,15 @@ def Counter(count, clk, inc_or_dec, wrap_around, rst_n):
         if rst_n == LOW:
             int_count.next = 0
         else:
-            if inc_or_dec == HIGH:
+            if intbv(int(inc_or_dec))[:]: # allows inc_or_dec to be a Signal or a bool
                 if int_count != int_count.max - 1:
                     int_count.next = int_count + 1
-                elif wrap_around == HIGH:
+                elif intbv(int(wrap_around))[:]: # same hack for wrap_around
                     int_count.next = intbv(int_count.min)
             else:
                 if int_count != int_count.min:
                     int_count.next = int_count - 1
-                elif wrap_around == HIGH:
+                elif intbv(int(wrap_around))[:]: # same hack for wrap_around
                     int_count.next = intbv(int_count.max - 1)
 
     # copies the internal count to the count output
