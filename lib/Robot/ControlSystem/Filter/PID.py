@@ -60,15 +60,16 @@ def PIDFilter(input, output, gain_P, gain_I, gain_D, out_shift, max_I, max_D, rs
     # compute and saturate output
     @instance
     def do_filter():
-        previous_in = intbv(0, min = input.min, max = input.max)
         integral = intbv(0, min = -max_I, max = max_I)
         derivate = intbv(0, min = -max_D, max = max_D)
+        previous_in = intbv(0, min = input.min, max = input.max)
         while True:
-            yield input, rst_n
+            yield input, rst_n, gain_P, gain_I, gain_D, out_shift
             if rst_n == LOW:
                 integral[:] = 0
                 derivate[:] = 0
                 previous_in[:] = 0
+                int_output.next = 0
             else:
                 # compute and saturate integral term
                 tmp = input + integral
