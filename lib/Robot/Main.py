@@ -215,7 +215,6 @@ def RobotIO(
 
     ## Control system manager
     angle_consign = Signal(intbv(0, min = MIN_ODOMETER_SPEED, max = MAX_ODOMETER_SPEED))
-    angle_enable  = Signal(LOW)
     AngleManager = ControlSystemManager(angle_consign_filter_input,
                                         angle_consign_filter_output,
                                         angle_correct_filter_input,
@@ -224,8 +223,7 @@ def RobotIO(
                                         angle_feedback_filter_output,
                                         angle_motor_speed,
                                         angle_odometer_speed,
-                                        angle_consign,
-                                        angle_enable)
+                                        angle_consign)
 
     # EXT ports
     ext1_port = ConcatSignal(ext1_7, ext1_6, ext1_5, ext1_4, ext1_3, ext1_2, ext1_1, ext1_0)
@@ -344,8 +342,6 @@ def RobotIO(
                 servo8_consign.next = value_from_master[len(servo8_consign):]
 
             # Angle control system
-            elif key == 0xB0:
-                angle_enable.next = value_from_master[0]
             elif key == 0xB1:
                 angle_consign.next = value_from_master[len(angle_consign):].signed()
             elif key == 0xB2:
