@@ -153,7 +153,7 @@ def RobotIO(
 
     # TODO: ADC SPI
 
-    # Servo motors
+    # !Servo motors
     servo1_consign = Signal(intbv(0)[16:])
     servo2_consign = Signal(intbv(0)[16:])
     servo3_consign = Signal(intbv(0)[16:])
@@ -171,7 +171,7 @@ def RobotIO(
     Servo1_ch6_inst = ServoDriver(pwm1_ch6, clk25, servo7_consign, rst_n, optocoupled)
     Servo1_ch7_inst = ServoDriver(pwm1_ch7, clk25, servo8_consign, rst_n, optocoupled)
 
-    # Angle control system
+    # !Angle control system
 
     ## Ramp consign filter
     angle_consign_filter_input  = Signal(intbv(0, min = MIN_ANGLE_SPEED, max = MAX_ANGLE_SPEED))
@@ -225,7 +225,7 @@ def RobotIO(
                                         angle_odometer_speed,
                                         angle_consign)
 
-    # Distance control system
+    # !Distance control system
 
     ## Ramp consign filter
     distance_consign_filter_input  = Signal(intbv(0, min = MIN_DISTANCE_SPEED, max = MAX_DISTANCE_SPEED))
@@ -279,7 +279,7 @@ def RobotIO(
                                            distance_odometer_speed,
                                            distance_consign)
 
-    # EXT ports
+    # !EXT ports
     ext1_port = ConcatSignal(ext1_7, ext1_6, ext1_5, ext1_4, ext1_3, ext1_2, ext1_1, ext1_0)
     ext2_port = ConcatSignal(ext2_7, ext2_6, ext2_5, ext2_4, ext2_3, ext2_2, ext2_1, ext2_0)
     ext3_port = ConcatSignal(ext3_7, ext3_6, ext3_5, ext3_4, ext3_3, ext3_2, ext3_1, ext3_0)
