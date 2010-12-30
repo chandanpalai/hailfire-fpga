@@ -8,6 +8,7 @@ test:
 	(cd test; python test_ControlSystemManager.py)
 	(cd test; python test_Counter.py)
 	(cd test; python test_GumstixSPI.py)
+	(cd test; python test_IdentityFilter.py)
 	(cd test; python test_LeftRightToAngleDistance.py)
 	(cd test; python test_MotorDriver.py)
 	(cd test; python test_OdometerReader.py)

@@ -1,4 +1,5 @@
 from myhdl import ConcatSignal, Signal, intbv, always, always_comb, instances
+from Robot.ControlSystem.Filter.Identity import IdentityFilter
 from Robot.ControlSystem.Filter.PID import PIDFilter
 from Robot.ControlSystem.Filter.Ramp import RampFilter
 from Robot.ControlSystem.Manager import ControlSystemManager
@@ -183,14 +184,13 @@ def RobotIO(
                            angle_max_acceleration,
                            angle_max_deceleration)
 
-    ## Fake filter on the feedback
+    ## Identity filter on the feedback
     angle_feedback_filter_input  = Signal(intbv(0, min = angle_odometer_speed.min,
                                                    max = angle_odometer_speed.max))
     angle_feedback_filter_output = Signal(intbv(0, min = angle_odometer_speed.min,
                                                    max = angle_odometer_speed.max))
-    @always_comb
-    def fake_angle_feedback_filter():
-        angle_feedback_filter_output.next = angle_feedback_filter_input
+    AngleIdentity = IdentityFilter(angle_feedback_filter_input,
+                                   angle_feedback_filter_output)
 
     ## PID correct filter
     angle_correct_filter_input  = Signal(intbv(0, min = angle_consign_filter_output.min - angle_feedback_filter_output.max,
@@ -237,14 +237,13 @@ def RobotIO(
                               distance_max_acceleration,
                               distance_max_deceleration)
 
-    ## Fake filter on the feedback
+    ## Identity filter on the feedback
     distance_feedback_filter_input  = Signal(intbv(0, min = distance_odometer_speed.min,
                                                       max = distance_odometer_speed.max))
     distance_feedback_filter_output = Signal(intbv(0, min = distance_odometer_speed.min,
                                                       max = distance_odometer_speed.max))
-    @always_comb
-    def fake_distance_feedback_filter():
-        distance_feedback_filter_output.next = distance_feedback_filter_input
+    DistanceIdentity = IdentityFilter(distance_feedback_filter_input,
+                                      distance_feedback_filter_output)
 
     ## PID correct filter
     distance_correct_filter_input  = Signal(intbv(0, min = distance_consign_filter_output.min - distance_feedback_filter_output.max,
