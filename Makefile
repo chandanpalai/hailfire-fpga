@@ -27,11 +27,17 @@ clean:
 	find lib test -name "*.pyc" -delete
 	find test -name "*.vcd*" -delete
 	find test -name "*.vhd*" -delete
+	rm -f *.cdf
+	rm -f *.jdi
 	rm -f *.dpf
 	rm -f *.pin
 	rm -f *.done
 	rm -f *.rpt
 	rm -f *.summary
+	rm -f *.qdf
+	rm -f *.qws
+	rm -f *.map
+	rm -f *.fit.smsg
 	rm -f undo_redo.txt
 	rm -rf db
 	rm -rf incremental_db
@@ -39,5 +45,6 @@ clean:
 realclean: clean
 	rm -f *.pof
 	rm -f *.sof
+	rm -f *.jic
 	rm -f generated/*.vhd
 	if [ -d generated ]; then rmdir generated; fi

@@ -41,7 +41,7 @@
 # ========================
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "10.0 SP1"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "14:43:44  OCTOBER 25, 2010"
-set_global_assignment -name LAST_QUARTUS_VERSION "10.0 SP1"
+set_global_assignment -name LAST_QUARTUS_VERSION 13.0
 set_global_assignment -name VHDL_FILE generated/pck_myhdl_07.vhd
 set_global_assignment -name VHDL_FILE generated/RobotIO.vhd
 
@@ -183,6 +183,10 @@ set_global_assignment -name RESERVE_ASDO_AFTER_CONFIGURATION "AS INPUT TRI-STATE
 # Assembler Assignments
 # =====================
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name GENERATE_JAM_FILE ON
+set_global_assignment -name ON_CHIP_BITSTREAM_DECOMPRESSION OFF
+set_global_assignment -name STRATIX_CONFIGURATION_DEVICE EPCS4
 
 # ---------------------
 # start ENTITY(RobotIO)
