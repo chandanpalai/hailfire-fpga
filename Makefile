@@ -46,5 +46,6 @@ realclean: clean
 	rm -f *.pof
 	rm -f *.sof
 	rm -f *.jic
+	rm -f *.jam
 	rm -f generated/*.vhd
 	if [ -d generated ]; then rmdir generated; fi
