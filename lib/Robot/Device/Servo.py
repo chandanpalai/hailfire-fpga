@@ -1,8 +1,5 @@
-from myhdl import Signal, always_comb, instances, intbv
-from Robot.Utils.Constants import LOW, HIGH
-from Robot.Utils.Counter import Counter
-
-CLK_DIVIDER = 500000
+from myhdl import Signal, always, always_comb, instances, intbv
+from Robot.Utils.Constants import LOW, HIGH, CLK_FREQ
 
 def ServoDriver(pwm, clk25, consign, rst_n, optocoupled):
     """
@@ -55,20 +52,43 @@ def ServoDriver(pwm, clk25, consign, rst_n, optocoupled):
     LOW_OPTO  = LOW if not optocoupled else HIGH
     HIGH_OPTO = HIGH if not optocoupled else LOW
 
-    # count to 500000 to generate a 50 Hz PWM: 25000000/500000 = 50
-    count   = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
-    counter = Counter(count       = count,
-                      clk         = clk25,
-                      inc_or_dec  = HIGH,
-                      wrap_around = True,
-                      rst_n       = rst_n)
+    # cnt overflows at 50Hz
+    PWM_FREQ = 50
+    CNT_MAX = int(CLK_FREQ/PWM_FREQ - 1)
+    cnt = Signal(intbv(0, min = 0, max = CNT_MAX + 1))
+
+    # 16-bit duty cycle
+    duty_cycle = Signal(intbv(0)[16:])
+    pwm_internal = Signal(LOW_OPTO)
+
+    @always(clk25.posedge, rst_n.negedge)
+    def drive_internal_signals():
+        """ Drive internal signals """
+        if rst_n == LOW:
+            cnt.next = 0
+            duty_cycle.next = 0
+            pwm_internal.next = LOW_OPTO
+        else:
+            # accept new consign at the beginning of a period
+            if cnt == 0:
+                duty_cycle.next = consign
+                if consign == 0:
+                    pwm_internal.next = LOW_OPTO
+                else:
+                    pwm_internal.next = HIGH_OPTO
+            else:
+                # reached consign?
+                if cnt == duty_cycle:
+                    pwm_internal.next = LOW_OPTO
+
+            if cnt == CNT_MAX:
+                cnt.next = 0
+            else:
+                cnt.next = cnt + 1
 
     @always_comb
     def drive_pwm():
         """ Drive pwm output signal """
-        if count < consign:
-            pwm.next = HIGH_OPTO
-        else:
-            pwm.next = LOW_OPTO
+        pwm.next = pwm_internal
 
     return instances()

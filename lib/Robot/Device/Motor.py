@@ -1,8 +1,5 @@
 from myhdl import Signal, always, always_comb, instances, intbv
 from Robot.Utils.Constants import LOW, HIGH
-from Robot.Utils.Counter import Counter
-
-CLK_DIVIDER = 2**10
 
 def MotorDriver(pwm, dir, en_n, clk25, speed, rst_n, optocoupled):
     """
@@ -44,52 +41,63 @@ def MotorDriver(pwm, dir, en_n, clk25, speed, rst_n, optocoupled):
 
     """
 
-    assert speed.min >= -CLK_DIVIDER and speed.max <= CLK_DIVIDER, 'wrong speed constraints'
+    assert speed.min >= -2**10 and speed.max <= 2**10, 'wrong speed constraints'
 
     # account for optocouplers
     LOW_OPTO  = LOW if not optocoupled else HIGH
     HIGH_OPTO = HIGH if not optocoupled else LOW
 
-    # count to 1024 to generate a 25 kHz PWM (approximately)
-    count   = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
-    counter = Counter(count       = count,
-                      clk         = clk25,
-                      inc_or_dec  = HIGH,
-                      wrap_around = True,
-                      rst_n       = rst_n)
+    # cnt overflows at 25KHz (approximately)
+    CNT_MAX = 2**10 - 1;
+    cnt = Signal(intbv(0, min = 0, max = CNT_MAX + 1))
 
-    # duty cycle is 0 to 1024 too
-    duty_cycle = Signal(intbv(0, min = 0, max = CLK_DIVIDER))
+    # 10-bit duty cycle
+    duty_cycle = Signal(intbv(0)[10:])
+    dir_internal = Signal(HIGH_OPTO)
+    pwm_internal = Signal(LOW_OPTO)
 
-    @always(speed)
-    def read_speed():
-        """ Extract duty cycle from speed input """
-        if speed >= 0:
-            duty_cycle.next = speed
-        elif -speed >= duty_cycle.max: # handle -1024 case
-            duty_cycle.next = intbv(duty_cycle.max - 1)
+    @always(clk25.posedge, rst_n.negedge)
+    def drive_internal_signals():
+        """ Drive internal signals """
+        if rst_n == LOW:
+            cnt.next = 0
+            duty_cycle.next = 0
+            dir_internal.next = HIGH_OPTO
+            pwm_internal.next = LOW_OPTO
         else:
-            duty_cycle.next = -speed
+            # accept new consign at the beginning of a period
+            if cnt == 0:
+                # extract duty cycle and direction
+                if speed >= 0:
+                    duty_cycle.next = speed
+                    dir_internal.next = HIGH_OPTO
+                elif -speed >= CNT_MAX: # handle -1024 case
+                    duty_cycle.next = CNT_MAX
+                    dir_internal.next = LOW_OPTO
+                else:
+                    duty_cycle.next = -speed
+                    dir_internal.next = LOW_OPTO
+
+                # start high unless no speed at all
+                if speed == 0:
+                    pwm_internal.next = LOW_OPTO
+                else:
+                    pwm_internal.next = HIGH_OPTO
+            else:
+                # reached consign?
+                if cnt == duty_cycle:
+                    pwm_internal.next = LOW_OPTO
+
+            if cnt == CNT_MAX:
+                cnt.next = 0
+            else:
+                cnt.next = cnt + 1
 
     @always_comb
-    def drive_pwm():
-        """ Drive pwm output signal """
-        if count < duty_cycle:
-            pwm.next = HIGH_OPTO
-        else:
-            pwm.next = LOW_OPTO
-
-    @always_comb
-    def drive_dir():
-        """ Drive dir output signal """
-        if speed >= 0:
-            dir.next = HIGH_OPTO
-        else:
-            dir.next = LOW_OPTO
-
-    @always(speed) # need to drive en_n so anything will do
-    def drive_en():
-        """ Drive en_n output signal """
-        en_n.next = HIGH
+    def drive_output_signals():
+        """ Drive output signals """
+        pwm.next = pwm_internal
+        dir.next = dir_internal
+        en_n.next = LOW_OPTO
 
     return instances()
