@@ -258,7 +258,7 @@ class TestRobotIO(unittest.TestCase):
             print 'set all leds'
             master_to_slave = get_write_led_command('yellow', on_offs['yellow'])
             master_to_slave = concat(master_to_slave, get_write_led_command('green', on_offs['green']))
-            master_to_slave = concat(master_to_slave, get_write_led_command('red', on_offs['red']))
+            #master_to_slave = concat(master_to_slave, get_write_led_command('red', on_offs['red']))
             slave_to_master = intbv(0)
             yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
             print 'done'
@@ -269,7 +269,7 @@ class TestRobotIO(unittest.TestCase):
             lines = {
                 'yellow': led_yellow_n,
                 'green': led_green_n,
-                'red': led_red_n
+            #    'red': led_red_n
             }
 
             # LEDs glow when line is low
@@ -280,11 +280,11 @@ class TestRobotIO(unittest.TestCase):
             on_offs = {
                 'yellow': intbv(randrange(2))[8:],
                 'green': intbv(randrange(2))[8:],
-                'red': intbv(randrange(2))[8:],
+            #    'red': intbv(randrange(2))[8:],
             }
 
             # Set led on_offs one at a time
-            for color in ['yellow', 'green', 'red']:
+            for color in ['yellow', 'green']: # 'red'
                 yield set_led_on_off(color, on_offs[color])
                 yield check_led_on_off(color, on_offs[color])
 
@@ -292,14 +292,14 @@ class TestRobotIO(unittest.TestCase):
             on_offs = {
                 'yellow': intbv(randrange(2))[8:],
                 'green': intbv(randrange(2))[8:],
-                'red': intbv(randrange(2))[8:],
+            #   'red': intbv(randrange(2))[8:],
             }
 
             # Set all led on_offs together
             yield set_leds_on_offs(on_offs)
 
             # Check actual duty cycles
-            for color in ['yellow', 'green', 'red']:
+            for color in ['yellow', 'green']: # 'red'
                 yield check_led_on_off(color, on_offs[color])
 
 
@@ -513,8 +513,8 @@ class TestRobotIO(unittest.TestCase):
         def set_motors_speeds(speeds):
             """ Set all motors speeds in one SPI transfer """
             print 'set all motors'
-            master_to_slave = get_write_motor_command(6, speeds[6])
-            for i in downrange(6, 1):
+            master_to_slave = get_write_motor_command(8, speeds[8])
+            for i in downrange(8, 1):
                 master_to_slave = concat(master_to_slave, get_write_motor_command(i, speeds[i]))
             slave_to_master = intbv(0)
             yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
@@ -523,7 +523,7 @@ class TestRobotIO(unittest.TestCase):
         def check_motor_duty_cycle(number, speed):
             """ Checks that the duty cycle of the motor[number] really corresponds to speed[10:] """
             print 'check motor', number
-            lines = [None, mot1_pwm, mot2_pwm, mot3_pwm, mot4_pwm, mot5_pwm, mot6_pwm]
+            lines = [None, mot1_pwm, mot2_pwm, mot3_pwm, mot4_pwm, mot5_pwm, mot6_pwm, mot7_pwm, mot8_pwm]
             count = intbv(0)
 
             # First period is not correct as the counter had already started
@@ -536,10 +536,10 @@ class TestRobotIO(unittest.TestCase):
 
         def test_motors():
             # Generate random speeds for motors
-            speeds = [intbv(randrange(-2**10, 2**10), min = -2**10, max = 2**10) for i in range(7)]
+            speeds = [intbv(randrange(-2**10, 2**10), min = -2**10, max = 2**10) for i in range(9)]
 
             # Set motor speeds one at a time
-            for i in range(1, 7):
+            for i in range(1, 9):
                 yield set_motor_speed(i, speeds[i])
 
             # Check actual duty cycles
@@ -548,10 +548,12 @@ class TestRobotIO(unittest.TestCase):
                        check_motor_duty_cycle(3, speeds[3]),
                        check_motor_duty_cycle(4, speeds[4]),
                        check_motor_duty_cycle(5, speeds[5]),
-                       check_motor_duty_cycle(6, speeds[6]))
+                       check_motor_duty_cycle(6, speeds[6]),
+                       check_motor_duty_cycle(7, speeds[7]),
+                       check_motor_duty_cycle(8, speeds[8]))
 
             # Regen random speeds
-            speeds = [intbv(randrange(-2**10, 2**10), min = -2**10, max = 2**10) for i in range(7)]
+            speeds = [intbv(randrange(-2**10, 2**10), min = -2**10, max = 2**10) for i in range(9)]
 
             # Set all motor speeds together
             yield set_motors_speeds(speeds)
@@ -562,7 +564,9 @@ class TestRobotIO(unittest.TestCase):
                        check_motor_duty_cycle(3, speeds[3]),
                        check_motor_duty_cycle(4, speeds[4]),
                        check_motor_duty_cycle(5, speeds[5]),
-                       check_motor_duty_cycle(6, speeds[6]))
+                       check_motor_duty_cycle(6, speeds[6]),
+                       check_motor_duty_cycle(7, speeds[7]),
+                       check_motor_duty_cycle(8, speeds[8]))
 
 
         #
