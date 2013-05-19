@@ -1,10 +1,11 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
 
 import unittest
 
 from myhdl import Signal, Simulation, toVHDL, StopSimulation, always_comb, intbv, join, traceSignals
-from Robot.ControlSystem.Manager import ControlSystemManager
+from Attic.ControlSystem.Manager import ControlSystemManager
 from Robot.Utils.Constants import LOW, HIGH
 
 def TestBench(ControlSystemManagerTester):

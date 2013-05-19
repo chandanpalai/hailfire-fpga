@@ -1,11 +1,12 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
 
 import unittest
 
 from myhdl import Signal, Simulation, StopSimulation, intbv, join, toVHDL
 from random import randrange
-from Robot.Utils.Polar import LeftRightToAngleDistance
+from Attic.Utils.Polar import LeftRightToAngleDistance
 
 NR_TESTS = 100
 

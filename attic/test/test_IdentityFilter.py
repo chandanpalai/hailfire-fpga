@@ -1,11 +1,12 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
 
 import unittest
 
 from myhdl import Signal, Simulation, toVHDL, StopSimulation, intbv
 from random import randrange
-from Robot.ControlSystem.Filter.Identity import IdentityFilter
+from Attic.ControlSystem.Filter.Identity import IdentityFilter
 
 def TestBench(IdentityTester):
     # create input and output 32-bit signals with default values

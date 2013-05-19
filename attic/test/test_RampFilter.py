@@ -1,10 +1,11 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
 
 import unittest
 
 from myhdl import Signal, Simulation, toVHDL, StopSimulation, delay, intbv, join, traceSignals
-from Robot.ControlSystem.Filter.Ramp import RampFilter
+from Attic.ControlSystem.Filter.Ramp import RampFilter
 
 def TestBench(RampTester):
     # create input and output 32-bit signals with default values

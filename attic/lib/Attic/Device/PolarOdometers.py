@@ -1,5 +1,5 @@
 from myhdl import instances
-from Robot.Utils.Polar import LeftRightToAngleDistance
+from Attic.Utils.Polar import LeftRightToAngleDistance
 
 def PolarOdometers(left_count, left_speed, right_count, right_speed,
                    angle_count, angle_speed, distance_count, distance_speed):

@@ -1,10 +1,11 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
 
 import unittest
 
 from myhdl import Signal, Simulation, toVHDL, StopSimulation, delay, intbv, join, traceSignals
-from Robot.ControlSystem.Filter.PID import PIDFilter
+from Attic.ControlSystem.Filter.PID import PIDFilter
 from Robot.Utils.Constants import LOW, HIGH
 
 def TestBench(PIDTester):

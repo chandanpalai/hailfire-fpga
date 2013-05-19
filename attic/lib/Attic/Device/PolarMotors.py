@@ -1,5 +1,5 @@
 from myhdl import Signal, always, instances, intbv
-from Robot.Utils.Polar import AngleDistanceToLeftRight
+from Attic.Utils.Polar import AngleDistanceToLeftRight
 
 def PolarMotors(angle_speed, distance_speed, left_speed, right_speed):
     """
