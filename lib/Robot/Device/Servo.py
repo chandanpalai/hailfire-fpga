@@ -59,36 +59,32 @@ def ServoDriver(pwm, clk25, consign, rst_n, optocoupled):
 
     # 16-bit duty cycle
     duty_cycle = Signal(intbv(0)[16:])
-    pwm_internal = Signal(LOW_OPTO)
 
     @always(clk25.posedge, rst_n.negedge)
-    def drive_internal_signals():
-        """ Drive internal signals """
+    def drive_pwm():
+        """ Drive output signals """
         if rst_n == LOW:
             cnt.next = 0
             duty_cycle.next = 0
-            pwm_internal.next = LOW_OPTO
+            pwm.next = LOW_OPTO
         else:
             # accept new consign at the beginning of a period
             if cnt == 0:
                 duty_cycle.next = consign
                 if consign == 0:
-                    pwm_internal.next = LOW_OPTO
+                    pwm.next = LOW_OPTO
                 else:
-                    pwm_internal.next = HIGH_OPTO
+                    pwm.next = HIGH_OPTO
             else:
                 # reached consign?
-                if cnt == duty_cycle:
-                    pwm_internal.next = LOW_OPTO
+                if cnt >= duty_cycle:
+                    pwm.next = LOW_OPTO
+                else:
+                    pwm.next = HIGH_OPTO
 
             if cnt == CNT_MAX:
                 cnt.next = 0
             else:
                 cnt.next = cnt + 1
-
-    @always_comb
-    def drive_pwm():
-        """ Drive pwm output signal """
-        pwm.next = pwm_internal
 
     return instances()

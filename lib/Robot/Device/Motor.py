@@ -53,51 +53,47 @@ def MotorDriver(pwm, dir, en_n, clk25, speed, rst_n, optocoupled):
 
     # 10-bit duty cycle
     duty_cycle = Signal(intbv(0)[10:])
-    dir_internal = Signal(HIGH_OPTO)
-    pwm_internal = Signal(LOW_OPTO)
 
     @always(clk25.posedge, rst_n.negedge)
-    def drive_internal_signals():
-        """ Drive internal signals """
+    def drive_outputs():
+        """ Drive output signals """
         if rst_n == LOW:
             cnt.next = 0
             duty_cycle.next = 0
-            dir_internal.next = HIGH_OPTO
-            pwm_internal.next = LOW_OPTO
+            dir.next = HIGH_OPTO
+            pwm.next = LOW_OPTO
+            en_n.next = LOW_OPTO
         else:
             # accept new consign at the beginning of a period
             if cnt == 0:
                 # extract duty cycle and direction
                 if speed >= 0:
                     duty_cycle.next = speed
-                    dir_internal.next = HIGH_OPTO
+                    dir.next = HIGH_OPTO
                 elif -speed >= CNT_MAX: # handle -1024 case
                     duty_cycle.next = CNT_MAX
-                    dir_internal.next = LOW_OPTO
+                    dir.next = LOW_OPTO
                 else:
                     duty_cycle.next = -speed
-                    dir_internal.next = LOW_OPTO
+                    dir.next = LOW_OPTO
 
                 # start high unless no speed at all
                 if speed == 0:
-                    pwm_internal.next = LOW_OPTO
+                    pwm.next = LOW_OPTO
                 else:
-                    pwm_internal.next = HIGH_OPTO
+                    pwm.next = HIGH_OPTO
             else:
                 # reached consign?
-                if cnt == duty_cycle:
-                    pwm_internal.next = LOW_OPTO
+                if cnt >= duty_cycle:
+                    pwm.next = LOW_OPTO
+                else:
+                    pwm.next = HIGH_OPTO
 
             if cnt == CNT_MAX:
                 cnt.next = 0
             else:
                 cnt.next = cnt + 1
 
-    @always_comb
-    def drive_output_signals():
-        """ Drive output signals """
-        pwm.next = pwm_internal
-        dir.next = dir_internal
-        en_n.next = LOW_OPTO
+            en_n.next = LOW_OPTO
 
     return instances()
