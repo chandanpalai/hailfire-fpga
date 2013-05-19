@@ -70,6 +70,18 @@ def RobotIO(
     # chip-wide active low reset signal
     rst_n = Signal(HIGH)
 
+    # Green LED should be off by default
+    led_green_consign = Signal(LOW)
+    @always_comb
+    def drive_led_green():
+        led_green_n.next = not led_green_consign
+
+    # Yellow LED should be off by default
+    led_yellow_consign = Signal(LOW)
+    @always_comb
+    def drive_led_yellow():
+        led_yellow_n.next = not led_yellow_consign
+
     # Toggle led every second
     Led1_inst = LEDDriver(led_red_n, clk25, rst_n)
 
@@ -139,6 +151,14 @@ def RobotIO(
     ext6_port = ConcatSignal(ext6_7, ext6_6, ext6_5, ext6_4, ext6_3, ext6_2, ext6_1, ext6_0)
     ext7_port = ConcatSignal(ext7_7, ext7_6, ext7_5, ext7_4, ext7_3, ext7_2, ext7_1, ext7_0)
 
+    # Registers for SPI read/write tests
+    stored_uint8  = Signal(intbv(0)[8:])
+    stored_uint16 = Signal(intbv(0)[16:])
+    stored_uint32 = Signal(intbv(0)[32:])
+    stored_int8   = Signal(intbv(0, min = -2**7,  max = 2**7))
+    stored_int16  = Signal(intbv(0, min = -2**15, max = 2**15))
+    stored_int32  = Signal(intbv(0, min = -2**31, max = 2**31))
+
     # Master reads: 0x01 <= key <= 0x7F
     @always(clk25.posedge, rst_n.negedge)
     def GumstixRead():
@@ -147,6 +167,7 @@ def RobotIO(
         else:
             if master_read_n == LOW:
                 value_for_master.next[:] = 0
+                # Odometers
                 if key == 0x11:
                     value_for_master.next = rc1_count[len(rc1_count):]
                 elif key == 0x12:
@@ -163,6 +184,8 @@ def RobotIO(
                     value_for_master.next = rc3_speed[len(rc3_speed):]
                 elif key == 0x24:
                     value_for_master.next = rc4_speed[len(rc4_speed):]
+
+                # EXT ports
                 elif key == 0x31:
                     value_for_master.next = ext1_port
                 elif key == 0x32:
@@ -177,6 +200,24 @@ def RobotIO(
                     value_for_master.next = ext6_port
                 elif key == 0x37:
                     value_for_master.next = ext7_port
+
+                # Fixed value for testing
+                elif key == 0x42:
+                    value_for_master.next = 0xDEADC0DE
+
+                # Read stored values for testing
+                elif key == 0x71:
+                    value_for_master.next = stored_uint8
+                elif key == 0x72:
+                    value_for_master.next = stored_uint16
+                elif key == 0x73:
+                    value_for_master.next = stored_uint32
+                elif key == 0x74:
+                    value_for_master.next = stored_int8
+                elif key == 0x75:
+                    value_for_master.next = stored_int16
+                elif key == 0x76:
+                    value_for_master.next = stored_int32
                 else:
                     # Dummy value sent when key is unknown.
                     # The value is fixed. The master read 'length'
@@ -194,13 +235,13 @@ def RobotIO(
             if key == 0x81:
                 rst_n.next = LOW
 
-            # Yellow LED
-            elif key == 0x82:
-                led_yellow_n.next = not value_from_master[0]
-
             # Green LED
+            elif key == 0x82:
+                led_green_consign.next = value_from_master[0]
+
+            # Yellow LED
             elif key == 0x83:
-                led_green_n.next = not value_from_master[0]
+                led_yellow_consign.next = value_from_master[0]
 
             # Red LED
             #elif key == 0x84:
@@ -241,6 +282,20 @@ def RobotIO(
                 servo7_consign.next = value_from_master[len(servo7_consign):]
             elif key == 0xA8:
                 servo8_consign.next = value_from_master[len(servo8_consign):]
+
+            # Store values for testing
+            elif key == 0xF1:
+                stored_uint8.next = value_from_master[len(stored_uint8):]
+            elif key == 0xF2:
+                stored_uint16.next = value_from_master[len(stored_uint16):]
+            elif key == 0xF3:
+                stored_uint32.next = value_from_master[len(stored_uint32):]
+            elif key == 0xF4:
+                stored_int8.next = value_from_master[len(stored_int8):].signed()
+            elif key == 0xF5:
+                stored_int16.next = value_from_master[len(stored_int16):].signed()
+            elif key == 0xF6:
+                stored_int32.next = value_from_master[len(stored_int32):].signed()
 
             # Complete if-elif-else to have it converted to a case block
             else:
