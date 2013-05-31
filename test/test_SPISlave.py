@@ -27,7 +27,7 @@ def TestBench(SPITester, n):
 
     SPISlave_inst = SPISlave(
         miso, mosi, sclk, ss_n,
-        txdata, txrdy, rxdata, rxrdy, rst_n, n=n)
+        txdata, txrdy, rxdata, rxrdy, rst_n, n=n, cpol=0, cpha=1)
 
     SPITester_inst = SPITester(
         miso, mosi, sclk, ss_n,
