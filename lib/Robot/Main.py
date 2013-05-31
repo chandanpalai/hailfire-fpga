@@ -1,9 +1,10 @@
 from myhdl import ConcatSignal, Signal, intbv, always, always_comb, instances
 from Robot.Device.LED import LEDDriver
+from Robot.Device.MCP3008 import MCP3008Driver
 from Robot.Device.Motor import MotorDriver
 from Robot.Device.Odometer import OdometerReader
 from Robot.Device.Servo import ServoDriver
-from Robot.SPI.Protocol.KLVSlave import GumstixSPI
+from Robot.SPI.Protocol.KLVSlave import KLVSlave
 from Robot.Utils.Constants import LOW, HIGH
 
 # max length of values read or written by the Gumstix
@@ -37,7 +38,9 @@ def RobotIO(
     led_yellow_n, led_green_n, led_red_n,
     optocoupled
     ):
-    """ Main module for robot IO stack
+    """
+
+    Main module for robot IO stack
 
     Instanciates and wires up all necessary modules.
 
@@ -59,7 +62,7 @@ def RobotIO(
 
     """
 
-    # communication with GumstixSPI
+    # communication with KLVSlave
     key = Signal(intbv(0)[8:])
     length = Signal(intbv(0)[8:])
     master_read_n = Signal(HIGH)
@@ -86,9 +89,9 @@ def RobotIO(
     Led1_inst = LEDDriver(led_red_n, clk25, rst_n)
 
     # Gumstix SPI
-    GumstixSPI_inst = GumstixSPI(sspi_miso, sspi_mosi, sspi_clk, sspi_cs,
-                                 key, length, master_read_n, value_for_master, master_write_n, value_from_master,
-                                 clk25, rst_n)
+    KLVSlave_inst = KLVSlave(sspi_miso, sspi_mosi, sspi_clk, sspi_cs,
+                             key, length, master_read_n, value_for_master, master_write_n, value_from_master,
+                             clk25, rst_n)
 
     # !Odometers (rc1-4)
     rc1_count = Signal(intbv(0, min = -2**31, max = 2**31))
@@ -122,7 +125,17 @@ def RobotIO(
     Motor7_inst = MotorDriver(mot7_pwm, mot7_dir, mot7_brake, clk25, motor7_speed, rst_n, optocoupled)
     Motor8_inst = MotorDriver(mot8_pwm, mot8_dir, mot8_brake, clk25, motor8_speed, rst_n, optocoupled)
 
-    # TODO: ADC SPI
+    # !MCP3008 A/D Converter
+    adc1_ch1 = Signal(intbv(0)[10:])
+    adc1_ch2 = Signal(intbv(0)[10:])
+    adc1_ch3 = Signal(intbv(0)[10:])
+    adc1_ch4 = Signal(intbv(0)[10:])
+    adc1_ch5 = Signal(intbv(0)[10:])
+    adc1_ch6 = Signal(intbv(0)[10:])
+    adc1_ch7 = Signal(intbv(0)[10:])
+    adc1_ch8 = Signal(intbv(0)[10:])
+    MCP3008Driver_inst = MCP3008Driver(adc1_ch1, adc1_ch2, adc1_ch3, adc1_ch4, adc1_ch5, adc1_ch6, adc1_ch7, adc1_ch8,
+                                       adc1_clk, adc1_cs, adc1_miso, adc1_mosi, clk25, rst_n)
 
     # !Servo motors
     servo1_consign = Signal(intbv(0)[16:])
@@ -163,66 +176,84 @@ def RobotIO(
     @always(clk25.posedge, rst_n.negedge)
     def GumstixRead():
         if rst_n == LOW:
-            value_for_master.next[:] = 0
+            value_for_master.next = 0
         else:
             if master_read_n == LOW:
-                value_for_master.next[:] = 0
+                value_for_master.next = 0
                 # Odometers
                 if key == 0x11:
-                    value_for_master.next = rc1_count[len(rc1_count):]
+                    value_for_master.next[len(rc1_count):] = rc1_count
                 elif key == 0x12:
-                    value_for_master.next = rc2_count[len(rc2_count):]
+                    value_for_master.next[len(rc2_count):] = rc2_count
                 elif key == 0x13:
-                    value_for_master.next = rc3_count[len(rc3_count):]
+                    value_for_master.next[len(rc3_count):] = rc3_count
                 elif key == 0x14:
-                    value_for_master.next = rc4_count[len(rc4_count):]
+                    value_for_master.next[len(rc4_count):] = rc4_count
                 elif key == 0x21:
-                    value_for_master.next = rc1_speed[len(rc1_speed):]
+                    value_for_master.next[len(rc1_speed):] = rc1_speed
                 elif key == 0x22:
-                    value_for_master.next = rc2_speed[len(rc2_speed):]
+                    value_for_master.next[len(rc2_speed):] = rc2_speed
                 elif key == 0x23:
-                    value_for_master.next = rc3_speed[len(rc3_speed):]
+                    value_for_master.next[len(rc3_speed):] = rc3_speed
                 elif key == 0x24:
-                    value_for_master.next = rc4_speed[len(rc4_speed):]
+                    value_for_master.next[len(rc4_speed):] = rc4_speed
 
                 # EXT ports
                 elif key == 0x31:
-                    value_for_master.next = ext1_port
+                    value_for_master.next[len(ext1_port):] = ext1_port
                 elif key == 0x32:
-                    value_for_master.next = ext2_port
+                    value_for_master.next[len(ext2_port):] = ext2_port
                 elif key == 0x33:
-                    value_for_master.next = ext3_port
+                    value_for_master.next[len(ext3_port):] = ext3_port
                 elif key == 0x34:
-                    value_for_master.next = ext4_port
+                    value_for_master.next[len(ext4_port):] = ext4_port
                 elif key == 0x35:
-                    value_for_master.next = ext5_port
+                    value_for_master.next[len(ext5_port):] = ext5_port
                 elif key == 0x36:
-                    value_for_master.next = ext6_port
+                    value_for_master.next[len(ext6_port):] = ext6_port
                 elif key == 0x37:
-                    value_for_master.next = ext7_port
+                    value_for_master.next[len(ext7_port):] = ext7_port
 
                 # Fixed value for testing
                 elif key == 0x42:
-                    value_for_master.next = 0xDEADC0DE
+                    value_for_master.next[32:] = 0xDEADC0DE
+
+                # ADC ports
+                elif key == 0x51:
+                    value_for_master.next[len(adc1_ch1):] = adc1_ch1
+                elif key == 0x52:
+                    value_for_master.next[len(adc1_ch2):] = adc1_ch2
+                elif key == 0x53:
+                    value_for_master.next[len(adc1_ch3):] = adc1_ch3
+                elif key == 0x54:
+                    value_for_master.next[len(adc1_ch4):] = adc1_ch4
+                elif key == 0x55:
+                    value_for_master.next[len(adc1_ch5):] = adc1_ch5
+                elif key == 0x56:
+                    value_for_master.next[len(adc1_ch6):] = adc1_ch6
+                elif key == 0x57:
+                    value_for_master.next[len(adc1_ch7):] = adc1_ch7
+                elif key == 0x58:
+                    value_for_master.next[len(adc1_ch8):] = adc1_ch8
 
                 # Read stored values for testing
                 elif key == 0x71:
-                    value_for_master.next = stored_uint8
+                    value_for_master.next[len(stored_uint8):] = stored_uint8
                 elif key == 0x72:
-                    value_for_master.next = stored_uint16
+                    value_for_master.next[len(stored_uint16):] = stored_uint16
                 elif key == 0x73:
-                    value_for_master.next = stored_uint32
+                    value_for_master.next[len(stored_uint32):] = stored_uint32
                 elif key == 0x74:
-                    value_for_master.next = stored_int8
+                    value_for_master.next[len(stored_int8):] = stored_int8
                 elif key == 0x75:
-                    value_for_master.next = stored_int16
+                    value_for_master.next[len(stored_int16):] = stored_int16
                 elif key == 0x76:
-                    value_for_master.next = stored_int32
+                    value_for_master.next[len(stored_int32):] = stored_int32
                 else:
                     # Dummy value sent when key is unknown.
                     # The value is fixed. The master read 'length'
                     # bytes from it.
-                    value_for_master.next[64:] = 0xDEADBEEFBAADF00D
+                    value_for_master.next = 0xDEADBEEFBAADF00D
 
     # Master writes: 0x81 <= key <= 0xFF
     # Not sensitive to rst_n as it is driven therein.
