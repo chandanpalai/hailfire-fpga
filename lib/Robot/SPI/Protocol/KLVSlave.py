@@ -4,7 +4,7 @@ from Robot.Utils.Constants import LOW, HIGH
 
 t_State = enum('READ_KEY', 'GET_READ_LENGTH', 'GET_WRITE_LENGTH', 'MASTER_WRITE', 'MASTER_READ')
 
-def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_master, master_write_n, value_from_master, clk25, rst_n):
+def KLVSlave(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_master, master_write_n, value_from_master, clk25, rst_n):
     """ Protocol driver for SPI slave communication with the Gumstix.
 
     miso -- master in, slave out serial output
@@ -39,7 +39,7 @@ def GumstixSPI(miso, mosi, sclk, ss_n, key, length, master_read_n, value_for_mas
     txrdy = Signal(LOW)
 
     # Controller driver
-    SPISlave_inst = SPISlave(miso, mosi, sclk, ss_n, txdata, txrdy, rxdata, rxrdy, rst_n, 8)
+    SPISlave_inst = SPISlave(miso, mosi, sclk, ss_n, txdata, txrdy, rxdata, rxrdy, rst_n, n=8, cpol=0, cpha=1)
 
     # Pulled low for 1 clock cycle when a new byte is received
     byte_received_n = Signal(HIGH)

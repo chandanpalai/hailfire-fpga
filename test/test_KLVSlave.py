@@ -4,15 +4,15 @@ sys.path.append('../lib')
 import unittest
 from random import randrange
 
-from myhdl import Signal, intbv, traceSignals, Simulation, StopSimulation, join, delay, downrange, concat, always
+from myhdl import Signal, intbv, toVHDL, Simulation, StopSimulation, join, delay, downrange, concat, always
 
-from Robot.SPI.Protocol.KLVSlave import GumstixSPI
+from Robot.SPI.Protocol.KLVSlave import KLVSlave
 from Robot.Utils.Constants import LOW, HIGH
 from TestUtils import ClkGen, random_write, random_read, spi_transfer
 
 MAX_LENGTH = 256 # max length of values read or written by the Gumstix
 
-def TestBench(GumstixSPITester):
+def TestBench(KLVSlaveTester):
 
     miso = Signal(LOW)
     mosi = Signal(LOW)
@@ -27,21 +27,21 @@ def TestBench(GumstixSPITester):
     clk = Signal(bool(0))
     rst_n = Signal(HIGH)
 
-    GumstixSPI_inst = traceSignals(GumstixSPI,
+    KLVSlave_inst = toVHDL(KLVSlave,
         miso, mosi, sclk, ss_n,
         key, length, master_read_n, value_for_master, master_write_n, value_from_master,
         clk, rst_n)
 
-    GumstixSPITester_inst = GumstixSPITester(
+    KLVSlaveTester_inst = KLVSlaveTester(
         miso, mosi, sclk, ss_n,
         key, length, master_read_n, value_for_master, master_write_n, value_from_master,
         clk, rst_n)
 
     ClkGen_inst = ClkGen(clk)
 
-    return GumstixSPI_inst, GumstixSPITester_inst, ClkGen_inst
+    return KLVSlave_inst, KLVSlaveTester_inst, ClkGen_inst
 
-class TestGumstixSPI(unittest.TestCase):
+class TestKLVSlave(unittest.TestCase):
 
     def Tester(self, miso, mosi, sclk, ss_n,
                  key, length, master_read_n, value_for_master, master_write_n, value_from_master,
@@ -118,7 +118,7 @@ class TestGumstixSPI(unittest.TestCase):
 
         raise StopSimulation()
 
-    def testGumstixSPI(self):
+    def testKLVSlave(self):
         sim = Simulation(TestBench(self.Tester))
         sim.run()
 

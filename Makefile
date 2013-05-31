@@ -5,7 +5,7 @@ build:
 .PHONY: test
 test:
 	(cd test; python test_Counter.py)
-	(cd test; python test_GumstixSPI.py)
+	(cd test; python test_KLVSlave.py)
 	(cd test; python test_MotorDriver.py)
 	(cd test; python test_OdometerReader.py)
 	(cd test; python test_RobotIO.py)
