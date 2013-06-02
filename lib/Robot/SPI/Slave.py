@@ -132,17 +132,19 @@ def SPISlave(spi_tx, spi_rx, spi_clk, spi_ss_n, txdata, txrdy, rxdata, rxrdy, rs
                 state = t_State.IDLE
                 cnt.next = 0
             else:
-                if state == t_State.IDLE:
-                    if i_ss_n == LOW:
+                if i_ss_n == LOW:
+                    if state == t_State.IDLE:
                         sreg[:] = txdata
                         txrdy.next = not txrdy
                         state = t_State.TRANSFER
                         cnt.next = 0
-                elif state == t_State.TRANSFER:
-                    sreg[n:1] = sreg[n-1:]
-                    if cnt == n-2:
-                        state = t_State.IDLE
-                    cnt.next = cnt + 1
-                i_tx.next = sreg[n-1]
+                    elif state == t_State.TRANSFER:
+                        sreg[n:1] = sreg[n-1:]
+                        if cnt == n-2:
+                            state = t_State.IDLE
+                        cnt.next = cnt + 1
+                    i_tx.next = sreg[n-1]
+                else:
+                    state = t_State.IDLE
 
     return instances()
