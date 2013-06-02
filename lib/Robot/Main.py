@@ -1,10 +1,9 @@
-from myhdl import ConcatSignal, Signal, intbv, always, always_comb, instances
+from myhdl import ConcatSignal, Signal, always, always_comb, concat, enum, instance, instances, intbv
 from Robot.Device.LED import LEDDriver
 from Robot.Device.MCP3008 import MCP3008Driver
 from Robot.Device.Motor import MotorDriver
 from Robot.Device.Odometer import OdometerReader
 from Robot.Device.Servo import ServoDriver
-from Robot.SPI.Protocol.KLVSlave import KLVSlave
 from Robot.Utils.Constants import LOW, HIGH
 
 # max length of values read or written by the Gumstix
@@ -62,16 +61,16 @@ def RobotIO(
 
     """
 
-    # communication with KLVSlave
-    key = Signal(intbv(0)[8:])
-    length = Signal(intbv(0)[8:])
-    master_read_n = Signal(HIGH)
-    value_for_master = Signal(intbv(0)[MAX_LENGTH*8:])
-    master_write_n = Signal(HIGH)
-    value_from_master = Signal(intbv(0)[MAX_LENGTH*8:])
-
     # chip-wide active low reset signal
-    rst_n = Signal(HIGH)
+    # brought low for 1 clk25 period when rst_n_consign changes
+    rst_n, rst_n_consign, rst_n_consign_prev = Signal(HIGH), Signal(HIGH), Signal(HIGH)
+    @always(clk25.posedge)
+    def DriveReset():
+        if rst_n_consign != rst_n_consign_prev:
+            rst_n.next = LOW
+            rst_n_consign_prev.next = rst_n_consign
+        else:
+            rst_n.next = HIGH
 
     # Green LED should be off by default
     led_green_consign = Signal(LOW)
@@ -87,11 +86,6 @@ def RobotIO(
 
     # Toggle led every second
     Led1_inst = LEDDriver(led_red_n, clk25, rst_n)
-
-    # Gumstix SPI
-    KLVSlave_inst = KLVSlave(sspi_miso, sspi_mosi, sspi_clk, sspi_cs,
-                             key, length, master_read_n, value_for_master, master_write_n, value_from_master,
-                             clk25, rst_n)
 
     # !Odometers (rc1-4)
     rc1_count = Signal(intbv(0, min = -2**31, max = 2**31))
@@ -172,164 +166,261 @@ def RobotIO(
     stored_int16  = Signal(intbv(0, min = -2**15, max = 2**15))
     stored_int32  = Signal(intbv(0, min = -2**31, max = 2**31))
 
-    # Master reads: 0x01 <= key <= 0x7F
-    @always(clk25.posedge, rst_n.negedge)
-    def GumstixRead():
-        if rst_n == LOW:
-            value_for_master.next = 0
-        else:
-            if master_read_n == LOW:
-                value_for_master.next = 0
-                # Odometers
-                if key == 0x11:
-                    value_for_master.next[len(rc1_count):] = rc1_count
-                elif key == 0x12:
-                    value_for_master.next[len(rc2_count):] = rc2_count
-                elif key == 0x13:
-                    value_for_master.next[len(rc3_count):] = rc3_count
-                elif key == 0x14:
-                    value_for_master.next[len(rc4_count):] = rc4_count
-                elif key == 0x21:
-                    value_for_master.next[len(rc1_speed):] = rc1_speed
-                elif key == 0x22:
-                    value_for_master.next[len(rc2_speed):] = rc2_speed
-                elif key == 0x23:
-                    value_for_master.next[len(rc3_speed):] = rc3_speed
-                elif key == 0x24:
-                    value_for_master.next[len(rc4_speed):] = rc4_speed
+    # communication with SPI Master
 
-                # EXT ports
-                elif key == 0x31:
-                    value_for_master.next[len(ext1_port):] = ext1_port
-                elif key == 0x32:
-                    value_for_master.next[len(ext2_port):] = ext2_port
-                elif key == 0x33:
-                    value_for_master.next[len(ext3_port):] = ext3_port
-                elif key == 0x34:
-                    value_for_master.next[len(ext4_port):] = ext4_port
-                elif key == 0x35:
-                    value_for_master.next[len(ext5_port):] = ext5_port
-                elif key == 0x36:
-                    value_for_master.next[len(ext6_port):] = ext6_port
-                elif key == 0x37:
-                    value_for_master.next[len(ext7_port):] = ext7_port
+    spi_State = enum('IDLE', 'TRANSFER')
+    spi_state = Signal(spi_State.IDLE)
+    spi_word_size = 8
+    spi_bit_cnt = Signal(intbv(0, min=0, max=spi_word_size))
 
-                # Fixed value for testing
-                elif key == 0x42:
-                    value_for_master.next[32:] = 0xDEADC0DE
+    protocol_State = enum('READ_KEY', 'GET_READ_LENGTH', 'GET_WRITE_LENGTH', 'MASTER_WRITE', 'MASTER_READ')
+    protocol_state = Signal(protocol_State.READ_KEY)
 
-                # ADC ports
-                elif key == 0x51:
-                    value_for_master.next[len(adc1_ch1):] = adc1_ch1
-                elif key == 0x52:
-                    value_for_master.next[len(adc1_ch2):] = adc1_ch2
-                elif key == 0x53:
-                    value_for_master.next[len(adc1_ch3):] = adc1_ch3
-                elif key == 0x54:
-                    value_for_master.next[len(adc1_ch4):] = adc1_ch4
-                elif key == 0x55:
-                    value_for_master.next[len(adc1_ch5):] = adc1_ch5
-                elif key == 0x56:
-                    value_for_master.next[len(adc1_ch6):] = adc1_ch6
-                elif key == 0x57:
-                    value_for_master.next[len(adc1_ch7):] = adc1_ch7
-                elif key == 0x58:
-                    value_for_master.next[len(adc1_ch8):] = adc1_ch8
+    key = Signal(intbv(0)[8:])
+    #length = Signal(intbv(0)[8:])
+    txdata = Signal(intbv(0)[8:])
 
-                # Read stored values for testing
-                elif key == 0x71:
-                    value_for_master.next[len(stored_uint8):] = stored_uint8
-                elif key == 0x72:
-                    value_for_master.next[len(stored_uint16):] = stored_uint16
-                elif key == 0x73:
-                    value_for_master.next[len(stored_uint32):] = stored_uint32
-                elif key == 0x74:
-                    value_for_master.next[len(stored_int8):] = stored_int8
-                elif key == 0x75:
-                    value_for_master.next[len(stored_int16):] = stored_int16
-                elif key == 0x76:
-                    value_for_master.next[len(stored_int32):] = stored_int32
-                else:
-                    # Dummy value sent when key is unknown.
-                    # The value is fixed. The master read 'length'
-                    # bytes from it.
-                    value_for_master.next = 0xDEADBEEFBAADF00D
+    @instance
+    def RX():
+        """ Capture on falling edge (mode 1) """
+        rxdata = intbv(0)[spi_word_size:]
 
-    # Master writes: 0x81 <= key <= 0xFF
-    # Not sensitive to rst_n as it is driven therein.
-    @always(clk25.posedge)
-    def GumstixWrite():
-        rst_n.next = HIGH
+        value_for_master = intbv(0)[MAX_LENGTH*8:]
+        value_from_master = intbv(0)[MAX_LENGTH*8:]
 
-        if master_write_n == LOW:
-            # Reset
-            if key == 0x81:
-                rst_n.next = LOW
+        # Index of the currently read or written value byte
+        index = len(value_for_master)
 
-            # Green LED
-            elif key == 0x82:
-                led_green_consign.next = value_from_master[0]
+        while True:
+            yield sspi_clk.negedge
+            if sspi_cs == LOW:
+                rxdata[spi_word_size:] = concat(rxdata[spi_word_size-1:], sspi_mosi)
 
-            # Yellow LED
-            elif key == 0x83:
-                led_yellow_consign.next = value_from_master[0]
+                # Read a whole word
+                if spi_bit_cnt == spi_word_size-1:
+                    txdata.next = 0
 
-            # Red LED
-            #elif key == 0x84:
-            #    led_red_n.next = not value_from_master[0]
+                    # handle the key sent by the master
+                    if protocol_state == protocol_State.READ_KEY:
+                        # read key sent by master
+                        key.next = rxdata
 
-            # Motors
-            elif key == 0x91:
-                motor1_speed.next = value_from_master[len(motor1_speed):].signed()
-            elif key == 0x92:
-                motor2_speed.next = value_from_master[len(motor2_speed):].signed()
-            elif key == 0x93:
-                motor3_speed.next = value_from_master[len(motor3_speed):].signed()
-            elif key == 0x94:
-                motor4_speed.next = value_from_master[len(motor4_speed):].signed()
-            elif key == 0x95:
-                motor5_speed.next = value_from_master[len(motor5_speed):].signed()
-            elif key == 0x96:
-                motor6_speed.next = value_from_master[len(motor6_speed):].signed()
-            elif key == 0x97:
-                motor7_speed.next = value_from_master[len(motor7_speed):].signed()
-            elif key == 0x98:
-                motor8_speed.next = value_from_master[len(motor8_speed):].signed()
+                        # need to read the length now
+                        # does the master want to read or write?
+                        if rxdata[7] == 0: # master read
+                            protocol_state.next = protocol_State.GET_READ_LENGTH
+                        else: # master write
+                            protocol_state.next = protocol_State.GET_WRITE_LENGTH
 
-            # Servos
-            elif key == 0xA1:
-                servo1_consign.next = value_from_master[len(servo1_consign):]
-            elif key == 0xA2:
-                servo2_consign.next = value_from_master[len(servo2_consign):]
-            elif key == 0xA3:
-                servo3_consign.next = value_from_master[len(servo3_consign):]
-            elif key == 0xA4:
-                servo4_consign.next = value_from_master[len(servo4_consign):]
-            elif key == 0xA5:
-                servo5_consign.next = value_from_master[len(servo5_consign):]
-            elif key == 0xA6:
-                servo6_consign.next = value_from_master[len(servo6_consign):]
-            elif key == 0xA7:
-                servo7_consign.next = value_from_master[len(servo7_consign):]
-            elif key == 0xA8:
-                servo8_consign.next = value_from_master[len(servo8_consign):]
+                    # handle the length of the value sent by the master
+                    elif protocol_state == protocol_State.GET_WRITE_LENGTH:
+                        # read length sent by master
+                        #length.next = rxdata
+                        value_from_master[:] = 0
 
-            # Store values for testing
-            elif key == 0xF1:
-                stored_uint8.next = value_from_master[len(stored_uint8):]
-            elif key == 0xF2:
-                stored_uint16.next = value_from_master[len(stored_uint16):]
-            elif key == 0xF3:
-                stored_uint32.next = value_from_master[len(stored_uint32):]
-            elif key == 0xF4:
-                stored_int8.next = value_from_master[len(stored_int8):].signed()
-            elif key == 0xF5:
-                stored_int16.next = value_from_master[len(stored_int16):].signed()
-            elif key == 0xF6:
-                stored_int32.next = value_from_master[len(stored_int32):].signed()
+                        if rxdata > 0: # write some bytes
+                            index = 8*(rxdata-1)
+                            protocol_state.next = protocol_State.MASTER_WRITE
+                        else: # write 0 byte: done
+                            protocol_state.next = protocol_State.READ_KEY
 
-            # Complete if-elif-else to have it converted to a case block
+                    # handle the length of the value expected by the master
+                    elif protocol_state == protocol_State.GET_READ_LENGTH:
+                        # read length sent by master
+                        #length.next = rxdata
+                        value_for_master[:] = 0
+
+                        if rxdata > 0: # read some bytes
+                            index = 8*(rxdata-1)
+                            protocol_state.next = protocol_State.MASTER_READ
+
+                            # Odometers: use bit slicing to convert signed to unsigned
+                            if key == 0x11:
+                                value_for_master[len(rc1_count):] = rc1_count[len(rc1_count):]
+                            elif key == 0x12:
+                                value_for_master[len(rc2_count):] = rc2_count[len(rc2_count):]
+                            elif key == 0x13:
+                                value_for_master[len(rc3_count):] = rc3_count[len(rc3_count):]
+                            elif key == 0x14:
+                                value_for_master[len(rc4_count):] = rc4_count[len(rc4_count):]
+                            elif key == 0x21:
+                                value_for_master[len(rc1_speed):] = rc1_speed[len(rc1_speed):]
+                            elif key == 0x22:
+                                value_for_master[len(rc2_speed):] = rc2_speed[len(rc2_speed):]
+                            elif key == 0x23:
+                                value_for_master[len(rc3_speed):] = rc3_speed[len(rc3_speed):]
+                            elif key == 0x24:
+                                value_for_master[len(rc4_speed):] = rc4_speed[len(rc4_speed):]
+
+                            # EXT ports
+                            elif key == 0x31:
+                                value_for_master[len(ext1_port):] = ext1_port
+                            elif key == 0x32:
+                                value_for_master[len(ext2_port):] = ext2_port
+                            elif key == 0x33:
+                                value_for_master[len(ext3_port):] = ext3_port
+                            elif key == 0x34:
+                                value_for_master[len(ext4_port):] = ext4_port
+                            elif key == 0x35:
+                                value_for_master[len(ext5_port):] = ext5_port
+                            elif key == 0x36:
+                                value_for_master[len(ext6_port):] = ext6_port
+                            elif key == 0x37:
+                                value_for_master[len(ext7_port):] = ext7_port
+
+                            # Fixed value for testing
+                            elif key == 0x42:
+                                value_for_master[32:] = 0xDEADC0DE
+
+                            # ADC ports
+                            elif key == 0x51:
+                                value_for_master[len(adc1_ch1):] = adc1_ch1
+                            elif key == 0x52:
+                                value_for_master[len(adc1_ch2):] = adc1_ch2
+                            elif key == 0x53:
+                                value_for_master[len(adc1_ch3):] = adc1_ch3
+                            elif key == 0x54:
+                                value_for_master[len(adc1_ch4):] = adc1_ch4
+                            elif key == 0x55:
+                                value_for_master[len(adc1_ch5):] = adc1_ch5
+                            elif key == 0x56:
+                                value_for_master[len(adc1_ch6):] = adc1_ch6
+                            elif key == 0x57:
+                                value_for_master[len(adc1_ch7):] = adc1_ch7
+                            elif key == 0x58:
+                                value_for_master[len(adc1_ch8):] = adc1_ch8
+
+                            # Read stored values for testing
+                            elif key == 0x71:
+                                value_for_master[len(stored_uint8):] = stored_uint8
+                            elif key == 0x72:
+                                value_for_master[len(stored_uint16):] = stored_uint16
+                            elif key == 0x73:
+                                value_for_master[len(stored_uint32):] = stored_uint32
+                            # use bit slicing to convert signed to unsigned
+                            elif key == 0x74:
+                                value_for_master[len(stored_int8):] = stored_int8[len(stored_int8):]
+                            elif key == 0x75:
+                                value_for_master[len(stored_int16):] = stored_int16[len(stored_int16):]
+                            elif key == 0x76:
+                                value_for_master[len(stored_int32):] = stored_int32[len(stored_int32):]
+                            else:
+                                # Dummy value sent when key is unknown.
+                                # The value is fixed. The master read 'length'
+                                # bytes from it.
+                                value_for_master[:] = 0xDEADBEEFBAADF00D
+
+                            txdata.next = value_for_master[(index + 8):index]
+
+                        else: # read 0 byte: done
+                            protocol_state.next = protocol_State.READ_KEY
+
+                    # handle the value bytes sent by the master
+                    elif protocol_state == protocol_State.MASTER_WRITE:
+                        # read value byte sent by master and store it
+                        value_from_master[(index + 8):index] = rxdata
+
+                        if index >= 8:
+                            # Get next byte
+                            index -= 8
+                        else:
+                            # Got everything
+                            protocol_state.next = protocol_State.READ_KEY
+
+                            # Reset
+                            if key == 0x81:
+                                rst_n_consign.next = not rst_n_consign
+
+                            # Green LED
+                            elif key == 0x82:
+                                led_green_consign.next = value_from_master[0]
+
+                            # Yellow LED
+                            elif key == 0x83:
+                                led_yellow_consign.next = value_from_master[0]
+
+                            # Motors
+                            elif key == 0x91:
+                                motor1_speed.next = value_from_master[len(motor1_speed):].signed()
+                            elif key == 0x92:
+                                motor2_speed.next = value_from_master[len(motor2_speed):].signed()
+                            elif key == 0x93:
+                                motor3_speed.next = value_from_master[len(motor3_speed):].signed()
+                            elif key == 0x94:
+                                motor4_speed.next = value_from_master[len(motor4_speed):].signed()
+                            elif key == 0x95:
+                                motor5_speed.next = value_from_master[len(motor5_speed):].signed()
+                            elif key == 0x96:
+                                motor6_speed.next = value_from_master[len(motor6_speed):].signed()
+                            elif key == 0x97:
+                                motor7_speed.next = value_from_master[len(motor7_speed):].signed()
+                            elif key == 0x98:
+                                motor8_speed.next = value_from_master[len(motor8_speed):].signed()
+
+                            # Servos
+                            elif key == 0xA1:
+                                servo1_consign.next = value_from_master[len(servo1_consign):]
+                            elif key == 0xA2:
+                                servo2_consign.next = value_from_master[len(servo2_consign):]
+                            elif key == 0xA3:
+                                servo3_consign.next = value_from_master[len(servo3_consign):]
+                            elif key == 0xA4:
+                                servo4_consign.next = value_from_master[len(servo4_consign):]
+                            elif key == 0xA5:
+                                servo5_consign.next = value_from_master[len(servo5_consign):]
+                            elif key == 0xA6:
+                                servo6_consign.next = value_from_master[len(servo6_consign):]
+                            elif key == 0xA7:
+                                servo7_consign.next = value_from_master[len(servo7_consign):]
+                            elif key == 0xA8:
+                                servo8_consign.next = value_from_master[len(servo8_consign):]
+
+                            # Store values for testing
+                            elif key == 0xF1:
+                                stored_uint8.next = value_from_master[len(stored_uint8):]
+                            elif key == 0xF2:
+                                stored_uint16.next = value_from_master[len(stored_uint16):]
+                            elif key == 0xF3:
+                                stored_uint32.next = value_from_master[len(stored_uint32):]
+                            elif key == 0xF4:
+                                stored_int8.next = value_from_master[len(stored_int8):].signed()
+                            elif key == 0xF5:
+                                stored_int16.next = value_from_master[len(stored_int16):].signed()
+                            elif key == 0xF6:
+                                stored_int32.next = value_from_master[len(stored_int32):].signed()
+
+                            # Convert to case block
+                            else:
+                                pass
+
+                    # decrement index when each value byte expected by the master has been sent
+                    elif protocol_state == protocol_State.MASTER_READ:
+                        if index >= 8:
+                            # Send next byte
+                            index -= 8
+                            txdata.next = value_for_master[(index + 8):index]
+                        else:
+                            # Sent everything
+                            protocol_state.next = protocol_State.READ_KEY
+
+    @instance
+    def TX():
+        """ Propagate on rising edge (mode 1) """
+        sreg = intbv(0)[spi_word_size:]
+        while True:
+            yield sspi_clk.posedge
+            if sspi_cs == LOW:
+                if spi_state == spi_State.IDLE:
+                    sreg[:] = txdata
+                    spi_state.next = spi_State.TRANSFER
+                    spi_bit_cnt.next = 0
+                elif spi_state == spi_State.TRANSFER:
+                    sreg[spi_word_size:1] = sreg[spi_word_size-1:]
+                    if spi_bit_cnt == spi_word_size-2:
+                        spi_state.next = spi_State.IDLE
+                    spi_bit_cnt.next = spi_bit_cnt + 1
+                sspi_miso.next = sreg[spi_word_size-1]
             else:
-                pass
+                spi_state.next = spi_State.IDLE
 
     return instances()
