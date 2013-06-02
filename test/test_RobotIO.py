@@ -238,7 +238,7 @@ class TestRobotIO(unittest.TestCase):
 
         def get_write_led_command(color, on_off):
             """ Return an intbv suitable to be sent to the slave to set led[color] on/off """
-            keys = {'yellow': 0x82, 'green': 0x83, 'red': 0x84}
+            keys = {'yellow': 0x83, 'green': 0x82, 'red': 0x84}
             ret = intbv(0)[24:]
             ret[24:16] = keys[color] # set led on/off
             ret[16:8] = 1            # send 1 byte
