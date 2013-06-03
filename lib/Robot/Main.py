@@ -9,6 +9,8 @@ from Robot.Utils.Constants import LOW, HIGH
 # max length of values read or written by the Gumstix
 # (the maximum for this value is 256)
 MAX_LENGTH = 8
+SPI_State = enum('IDLE', 'TRANSFER')
+KLV_State = enum('READ_KEY', 'GET_READ_LENGTH', 'GET_WRITE_LENGTH', 'MASTER_WRITE', 'MASTER_READ')
 
 def RobotIO(
     clk25,
@@ -166,73 +168,144 @@ def RobotIO(
     stored_int16  = Signal(intbv(0, min = -2**15, max = 2**15))
     stored_int32  = Signal(intbv(0, min = -2**31, max = 2**31))
 
-    # communication with SPI Master
+    # Communication with SPI Master.
+    #
+    # The master sends a stream of KLV (Key byte, Length byte, Value bytes)
+    # encoded commands. Keys upto 0x7F are read commands. Keys from 0x80 are
+    # write commands.
+    #
+    # SPI mode 1 (cpol = 0, cpha = 1) is used:
+    # - the base value of the clock is LOW
+    # - data is captured on the clock's falling edge and data is propagated
+    #   on a rising edge.
+    #
+    # To use mode 3 (cpol = 1, cpha = 1), switch the edges of sspi_clk in
+    # TX() and RX().
 
-    spi_State = enum('IDLE', 'TRANSFER')
-    spi_state = Signal(spi_State.IDLE)
-    spi_word_size = 8
-    spi_bit_cnt = Signal(intbv(0, min=0, max=spi_word_size))
+    # word size: 8 bits
+    ws = 8
 
-    protocol_State = enum('READ_KEY', 'GET_READ_LENGTH', 'GET_WRITE_LENGTH', 'MASTER_WRITE', 'MASTER_READ')
-    protocol_state = Signal(protocol_State.READ_KEY)
+    # next word to send
+    txdata = Signal(intbv(0)[ws:])
 
-    key = Signal(intbv(0)[8:])
-    #length = Signal(intbv(0)[8:])
-    txdata = Signal(intbv(0)[8:])
+    # number of bits sent in txdata (sort of)
+    spi_cnt = Signal(intbv(0, min=0, max=ws))
+
+    @instance
+    def TX():
+        """
+
+        Low level SPI transmission: drives sspi_miso.
+
+        Reacts on rising edges of the SPI clock to send txdata bit per bit.
+        Drives spi_cnt for use by RX() to detect end of word.
+
+        """
+
+        # shift register with bits to send to master
+        txsreg = intbv(0)[ws:]
+
+        # state in the SPI "protocol"
+        state = SPI_State.IDLE
+
+        while True:
+            # Propagate on rising edge (mode 1)
+            yield sspi_clk.posedge
+            if sspi_cs == LOW:
+                if state == SPI_State.IDLE:
+                    txsreg[:] = txdata
+                    state = SPI_State.TRANSFER
+                    spi_cnt.next = 0
+                elif state == SPI_State.TRANSFER:
+                    txsreg[ws:1] = txsreg[ws-1:]
+                    # ws-2 because 1st bit was sent without cnt++
+                    if spi_cnt == ws-2:
+                        state = SPI_State.IDLE
+                    spi_cnt.next = spi_cnt + 1
+                sspi_miso.next = txsreg[ws-1]
+            else:
+                state = SPI_State.IDLE
 
     @instance
     def RX():
-        """ Capture on falling edge (mode 1) """
-        rxdata = intbv(0)[spi_word_size:]
+        """
 
-        value_for_master = intbv(0)[MAX_LENGTH*8:]
-        value_from_master = intbv(0)[MAX_LENGTH*8:]
+        Low level SPI reception and higher level word handling.
 
-        # Index of the currently read or written value byte
-        index = len(value_for_master)
+        Reacts on falling edges of the SPI clock to store the received bits.
+
+        When a word is received, RX() interprets it as the key, length, or one
+        of the value bytes, depending on the current state in the KLV decoding.
+
+        RX() drives txdata to send the value bytes one by one when the master
+        is reading, or else to send null bytes.
+
+        """
+        # shift register with bits received from master
+        rxsreg = intbv(0)[ws:]
+
+        # address sent by the master
+        key = intbv(0)[ws:]
+
+        # length of the value sent or expected by the master
+        length = intbv(0)[ws:]
+
+        # big intbv whose lower bytes are sent to the master when it is reading
+        value_for_master = intbv(0)[MAX_LENGTH*ws:]
+
+        # big intbv whose lower bytes are set by the master when it is writing
+        value_from_master = intbv(0)[MAX_LENGTH*ws:]
+
+        # index of the currently read or written value byte
+        index = MAX_LENGTH*ws
+
+        # state in the KLV protocol
+        state = KLV_State.READ_KEY
 
         while True:
+            # Capture on falling edge (mode 1)
             yield sspi_clk.negedge
             if sspi_cs == LOW:
-                rxdata[spi_word_size:] = concat(rxdata[spi_word_size-1:], sspi_mosi)
+                # shift in new bit
+                rxsreg[ws:] = concat(rxsreg[ws-1:], sspi_mosi)
 
                 # Read a whole word
-                if spi_bit_cnt == spi_word_size-1:
+                if spi_cnt == ws-1:
                     txdata.next = 0
 
                     # handle the key sent by the master
-                    if protocol_state == protocol_State.READ_KEY:
+                    if state == KLV_State.READ_KEY:
                         # read key sent by master
-                        key.next = rxdata
+                        key[:] = rxsreg
 
                         # need to read the length now
                         # does the master want to read or write?
-                        if rxdata[7] == 0: # master read
-                            protocol_state.next = protocol_State.GET_READ_LENGTH
+                        if rxsreg[ws-1] == 0: # master read
+                            state = KLV_State.GET_READ_LENGTH
                         else: # master write
-                            protocol_state.next = protocol_State.GET_WRITE_LENGTH
+                            state = KLV_State.GET_WRITE_LENGTH
 
                     # handle the length of the value sent by the master
-                    elif protocol_state == protocol_State.GET_WRITE_LENGTH:
+                    elif state == KLV_State.GET_WRITE_LENGTH:
                         # read length sent by master
-                        #length.next = rxdata
+                        length[:] = rxsreg
                         value_from_master[:] = 0
 
-                        if rxdata > 0: # write some bytes
-                            index = 8*(rxdata-1)
-                            protocol_state.next = protocol_State.MASTER_WRITE
+                        if rxsreg > 0: # write some bytes
+                            index = ws*(rxsreg-1)
+                            state = KLV_State.MASTER_WRITE
                         else: # write 0 byte: done
-                            protocol_state.next = protocol_State.READ_KEY
+                            state = KLV_State.READ_KEY
 
                     # handle the length of the value expected by the master
-                    elif protocol_state == protocol_State.GET_READ_LENGTH:
+                    elif state == KLV_State.GET_READ_LENGTH:
                         # read length sent by master
-                        #length.next = rxdata
+                        length[:] = rxsreg
                         value_for_master[:] = 0
 
-                        if rxdata > 0: # read some bytes
-                            index = 8*(rxdata-1)
-                            protocol_state.next = protocol_State.MASTER_READ
+                        if rxsreg > 0: # read some bytes
+                            index = ws*(rxsreg-1)
+                            state = KLV_State.MASTER_READ
 
                             # Odometers: use bit slicing to convert signed to unsigned
                             if key == 0x11:
@@ -310,22 +383,23 @@ def RobotIO(
                                 # bytes from it.
                                 value_for_master[:] = 0xDEADBEEFBAADF00D
 
-                            txdata.next = value_for_master[(index + 8):index]
+                            # send first byte immediately
+                            txdata.next = value_for_master[(index + ws):index]
 
                         else: # read 0 byte: done
-                            protocol_state.next = protocol_State.READ_KEY
+                            state = KLV_State.READ_KEY
 
                     # handle the value bytes sent by the master
-                    elif protocol_state == protocol_State.MASTER_WRITE:
+                    elif state == KLV_State.MASTER_WRITE:
                         # read value byte sent by master and store it
-                        value_from_master[(index + 8):index] = rxdata
+                        value_from_master[(index + ws):index] = rxsreg
 
-                        if index >= 8:
+                        if index >= ws:
                             # Get next byte
-                            index -= 8
+                            index -= ws
                         else:
                             # Got everything
-                            protocol_state.next = protocol_State.READ_KEY
+                            state = KLV_State.READ_KEY
 
                             # Reset
                             if key == 0x81:
@@ -394,33 +468,18 @@ def RobotIO(
                                 pass
 
                     # decrement index when each value byte expected by the master has been sent
-                    elif protocol_state == protocol_State.MASTER_READ:
-                        if index >= 8:
+                    elif state == KLV_State.MASTER_READ:
+                        if index >= ws:
                             # Send next byte
-                            index -= 8
-                            txdata.next = value_for_master[(index + 8):index]
+                            index -= ws
+                            txdata.next = value_for_master[(index + ws):index]
                         else:
                             # Sent everything
-                            protocol_state.next = protocol_State.READ_KEY
+                            state = KLV_State.READ_KEY
 
-    @instance
-    def TX():
-        """ Propagate on rising edge (mode 1) """
-        sreg = intbv(0)[spi_word_size:]
-        while True:
-            yield sspi_clk.posedge
-            if sspi_cs == LOW:
-                if spi_state == spi_State.IDLE:
-                    sreg[:] = txdata
-                    spi_state.next = spi_State.TRANSFER
-                    spi_bit_cnt.next = 0
-                elif spi_state == spi_State.TRANSFER:
-                    sreg[spi_word_size:1] = sreg[spi_word_size-1:]
-                    if spi_bit_cnt == spi_word_size-2:
-                        spi_state.next = spi_State.IDLE
-                    spi_bit_cnt.next = spi_bit_cnt + 1
-                sspi_miso.next = sreg[spi_word_size-1]
+            # Deselected
             else:
-                spi_state.next = spi_State.IDLE
+                state = KLV_State.READ_KEY
+                txdata.next = 0
 
     return instances()
