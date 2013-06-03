@@ -1,12 +1,14 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
+sys.path.append('../../test')
 
 import unittest
 from random import randrange
 
 from myhdl import Signal, intbv, toVHDL, Simulation, StopSimulation, join, delay, downrange, concat, always
 
-from Robot.SPI.Protocol.KLVSlave import KLVSlave
+from Attic.SPI.Protocol.KLVSlave import KLVSlave
 from Robot.Utils.Constants import LOW, HIGH
 from TestUtils import ClkGen, random_write, random_read, spi_transfer
 
