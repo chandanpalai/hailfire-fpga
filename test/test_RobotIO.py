@@ -3,11 +3,11 @@ sys.path.append('../lib')
 
 import unittest
 
-from myhdl import Signal, Simulation, StopSimulation, always, concat, delay, downrange, intbv, join
+from myhdl import Signal, Simulation, StopSimulation, always, concat, delay, downrange, intbv, join, traceSignals
 from random import randrange
 from Robot.Main import RobotIO
 from Robot.Utils.Constants import LOW, HIGH
-from TestUtils import ClkGen, count_high, quadrature_encode, spi_transfer
+from TestUtils import ClkGen, count_high, quadrature_encode
 
 def TestBench(RobotIOTester):
 
@@ -142,7 +142,7 @@ def TestBench(RobotIOTester):
     led_red_n    = Signal(HIGH)
 
     # Instanciate module under test
-    RobotIO_inst = RobotIO(
+    RobotIO_inst = traceSignals(RobotIO,
         clk25,
         sspi_clk, sspi_cs, sspi_miso, sspi_mosi,
         rc1_cha, rc1_chb,
@@ -231,6 +231,20 @@ class TestRobotIO(unittest.TestCase):
                  ext7_0, ext7_1, ext7_2, ext7_3, ext7_4, ext7_5, ext7_6, ext7_7,
                  led_yellow_n, led_green_n, led_red_n):
 
+        def spi_transfer(master_to_slave, slave_to_master):
+            """ Send data like an SPI master would """
+            yield delay(50)
+            sspi_cs.next = LOW
+            yield delay(10)
+            for i in downrange(len(master_to_slave)):
+                sspi_clk.next = HIGH
+                sspi_mosi.next = master_to_slave[i]
+                yield delay(10)
+                sspi_clk.next = LOW
+                slave_to_master[i] = sspi_miso
+                yield delay(10)
+            sspi_cs.next = HIGH
+
 
         #
         # LED
@@ -250,7 +264,7 @@ class TestRobotIO(unittest.TestCase):
             print 'set', color, 'led:', ('on' if on_off == 1 else 'off'), '...',
             master_to_slave = get_write_led_command(color, on_off)
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             print 'done'
 
         def set_leds_on_offs(on_offs):
@@ -260,7 +274,7 @@ class TestRobotIO(unittest.TestCase):
             master_to_slave = concat(master_to_slave, get_write_led_command('green', on_offs['green']))
             #master_to_slave = concat(master_to_slave, get_write_led_command('red', on_offs['red']))
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             print 'done'
 
         def check_led_on_off(color, on_off):
@@ -376,7 +390,7 @@ class TestRobotIO(unittest.TestCase):
             print 'read ext port nb:', number, '...',
             master_to_slave = get_read_ext_port_command(number)
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             self.assertEquals(slave_to_master[8:], expected_data)
             print 'done'
 
@@ -387,7 +401,7 @@ class TestRobotIO(unittest.TestCase):
             for i in downrange(7, 1):
                 master_to_slave = concat(master_to_slave, get_read_ext_port_command(i))
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             for i in downrange(8, 1):
                 self.assertEquals(slave_to_master[i*24-16:(i-1)*24], expected_datas[i])
             print 'done'
@@ -455,7 +469,7 @@ class TestRobotIO(unittest.TestCase):
             print 'read rc port nb:', number, '...',
             master_to_slave = get_read_rc_port_command(number)
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             self.assertEquals(slave_to_master[16:].signed(), expected_data)
             print 'done'
 
@@ -466,7 +480,7 @@ class TestRobotIO(unittest.TestCase):
             for i in downrange(4, 1):
                 master_to_slave = concat(master_to_slave, get_read_rc_port_command(i))
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             for i in downrange(5, 1):
                 self.assertEquals(slave_to_master[i*32-16:(i-1)*32].signed(), expected_datas[i])
             print 'done'
@@ -491,6 +505,80 @@ class TestRobotIO(unittest.TestCase):
 
 
         #
+        # ADC
+        #
+
+        def fake_mcp3008(channel, values):
+            """
+
+            Send data like an MCP3008 would
+
+            CPOL=1 and CPHA=1 here:
+             - the base value of the clock is HIGH
+             - data is captured on the clock's rising edge and data is
+               propagated on a falling edge.
+
+            """
+            yield adc1_cs.negedge
+
+            # wait for start bit: first clock with mosi high
+            while adc1_mosi == LOW:
+                yield adc1_clk.posedge
+            self.assertEqual(adc1_mosi, HIGH)
+
+            # single-ended bit
+            yield adc1_clk.posedge
+            self.assertEqual(adc1_mosi, HIGH)
+
+            # channel bits
+            for i in downrange(len(channel)):
+                yield adc1_clk.posedge
+                channel[i] = adc1_mosi
+
+            print 'master wants channel:', channel
+
+            # one more bit for conversion
+            yield adc1_clk.posedge
+
+            # then MCP3008 sends a null byte
+            yield adc1_clk.negedge
+            adc1_miso.next = LOW
+
+            # and then the 10-bit value
+            value = values[channel]
+            print 'slave sending:', value
+            for i in downrange(len(value)):
+                yield adc1_clk.negedge
+                adc1_miso.next = value[i]
+
+            yield adc1_cs.posedge
+            print "slave done"
+
+        def get_read_adc_channel_command(number):
+            ret = intbv(0)[32:]
+            ret[32:24] = 0x50 + number  # read adc channel (0 to 7)
+            ret[24:16] = 2              # expect 2 bytes
+            return ret
+
+        def read_adc_channel(number):
+            master_to_slave = get_read_adc_channel_command(number)
+            slave_to_master = intbv(0)
+
+            channel = intbv(0)[3:]
+            values = [intbv(randrange(2**10))[10:] for i in range(8)]
+
+            yield join(fake_mcp3008(channel, values), spi_transfer(master_to_slave, slave_to_master))
+            self.assertEquals(channel, number)
+            self.assertEquals(slave_to_master[16:], values[number])
+            print 'done'
+
+        def test_adc_ports():
+            # Read channels separately
+            for i in range(8):
+                yield read_adc_channel(i)
+
+
+        #
         # Motors
         #
 
@@ -507,7 +595,7 @@ class TestRobotIO(unittest.TestCase):
             print 'set motor:', number, '...',
             master_to_slave = get_write_motor_command(number, speed)
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             print 'done'
 
         def set_motors_speeds(speeds):
@@ -517,7 +605,7 @@ class TestRobotIO(unittest.TestCase):
             for i in downrange(8, 1):
                 master_to_slave = concat(master_to_slave, get_write_motor_command(i, speeds[i]))
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             print 'done'
 
         def check_motor_duty_cycle(number, speed):
@@ -586,7 +674,7 @@ class TestRobotIO(unittest.TestCase):
             print 'set servo:', number, '...',
             master_to_slave = get_write_servo_command(number, consign)
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             print 'done'
 
         def set_servos_consigns(consigns):
@@ -596,7 +684,7 @@ class TestRobotIO(unittest.TestCase):
             for i in downrange(8, 1):
                 master_to_slave = concat(master_to_slave, get_write_servo_command(i, consigns[i]))
             slave_to_master = intbv(0)
-            yield spi_transfer(sspi_miso, sspi_mosi, sspi_clk, sspi_cs, master_to_slave, slave_to_master)
+            yield spi_transfer(master_to_slave, slave_to_master)
             print 'done'
 
         def check_servo_duty_cycle(number, consign):
@@ -658,6 +746,7 @@ class TestRobotIO(unittest.TestCase):
         #
 
         yield test_leds()
+        yield test_adc_ports()
         yield test_ext_ports()
         yield test_rc_ports()
         yield test_motors()
