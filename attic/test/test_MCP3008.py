@@ -1,12 +1,14 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
+sys.path.append('../../test')
 
 import unittest
 from random import randrange
 
 from myhdl import Signal, Simulation, StopSimulation, intbv, join, toVHDL, traceSignals, downrange
 
-from Robot.Device.MCP3008 import MCP3008Driver
+from Attic.Device.MCP3008 import MCP3008Driver
 from Robot.Utils.Constants import LOW, HIGH
 from TestUtils import ClkGen, spi_transfer
 

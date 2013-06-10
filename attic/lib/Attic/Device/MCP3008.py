@@ -1,5 +1,5 @@
 from myhdl import Signal, always, always_comb, enum, instance, instances, intbv, concat
-from Robot.SPI.Slave import SPISlave
+from Attic.SPI.Slave import SPISlave
 from Robot.Utils.Constants import LOW, HIGH, CLK_FREQ
 
 t_State = enum('IDLE', 'READING')

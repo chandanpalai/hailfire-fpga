@@ -5,20 +5,18 @@ build:
 .PHONY: test
 test:
 	(cd test; python test_Counter.py)
-	(cd test; python test_KLVSlave.py)
 	(cd test; python test_MotorDriver.py)
 	(cd test; python test_OdometerReader.py)
 	(cd test; python test_RobotIO.py)
-	(cd test; python test_SPISlave.py)
 	echo 'Skipping ServoDriver tests: run make longtest'
 
 longtest: test
 	(cd test; python test_ServoDriver.py)
 
 clean:
-	find lib test -name "*.pyc" -delete
-	find test -name "*.vcd*" -delete
-	find test -name "*.vhd*" -delete
+	find lib test attic -name "*.pyc" -delete
+	find test attic/test -name "*.vcd*" -delete
+	find test attic/test -name "*.vhd*" -delete
 	rm -f *.cdf
 	rm -f *.jdi
 	rm -f *.dpf

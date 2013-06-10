@@ -1,12 +1,14 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
+sys.path.append('../../test')
 
 import unittest
 from random import randrange
 
 from myhdl import Signal, Simulation, intbv, join
 
-from Robot.SPI.Slave import SPISlave
+from Attic.SPI.Slave import SPISlave
 from Robot.Utils.Constants import LOW, HIGH
 from TestUtils import spi_transfer
 

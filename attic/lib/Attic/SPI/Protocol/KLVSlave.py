@@ -1,5 +1,5 @@
 from myhdl import Signal, enum, intbv, always, instance, instances
-from Robot.SPI.Slave import SPISlave
+from Attic.SPI.Slave import SPISlave
 from Robot.Utils.Constants import LOW, HIGH
 
 t_State = enum('READ_KEY', 'GET_READ_LENGTH', 'GET_WRITE_LENGTH', 'MASTER_WRITE', 'MASTER_READ')

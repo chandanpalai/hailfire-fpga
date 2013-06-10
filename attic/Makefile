@@ -9,6 +9,8 @@ test:
 	(cd test; python test_PolarOdometers.py)
 	(cd test; python test_RampFilter.py)
 	(cd test; python test_KLVSlave.py)
+	(cd test; python test_SPISlave.py)
+	(cd test; python test_MCP3008.py)
 
 clean:
 	find lib test -name "*.pyc" -delete
