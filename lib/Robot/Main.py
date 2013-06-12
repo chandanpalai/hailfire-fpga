@@ -90,17 +90,13 @@ def RobotIO(
 
     # !Odometers (rc1-4)
     rc1_count = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc1_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     rc2_count = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc2_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     rc3_count = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc3_speed = Signal(intbv(0, min = -2**31, max = 2**31))
     rc4_count = Signal(intbv(0, min = -2**31, max = 2**31))
-    rc4_speed = Signal(intbv(0, min = -2**31, max = 2**31))
-    Odometer1_inst = OdometerReader(rc1_count, rc1_speed, rc1_cha, rc1_chb, clk25, rst_n)
-    Odometer2_inst = OdometerReader(rc2_count, rc2_speed, rc2_cha, rc2_chb, clk25, rst_n)
-    Odometer3_inst = OdometerReader(rc3_count, rc3_speed, rc3_cha, rc3_chb, clk25, rst_n)
-    Odometer4_inst = OdometerReader(rc4_count, rc4_speed, rc4_cha, rc4_chb, clk25, rst_n)
+    Odometer1_inst = OdometerReader(rc1_count, rc1_cha, rc1_chb, clk25, rst_n)
+    Odometer2_inst = OdometerReader(rc2_count, rc2_cha, rc2_chb, clk25, rst_n)
+    Odometer3_inst = OdometerReader(rc3_count, rc3_cha, rc3_chb, clk25, rst_n)
+    Odometer4_inst = OdometerReader(rc4_count, rc4_cha, rc4_chb, clk25, rst_n)
 
     # !Motors (mot1-8)
     motor1_speed = Signal(intbv(0, min = -2**10, max = 2**10))
@@ -406,14 +402,6 @@ def RobotIO(
                                 value_for_master[len(rc3_count):] = rc3_count[len(rc3_count):]
                             elif key == 0x14:
                                 value_for_master[len(rc4_count):] = rc4_count[len(rc4_count):]
-                            elif key == 0x21:
-                                value_for_master[len(rc1_speed):] = rc1_speed[len(rc1_speed):]
-                            elif key == 0x22:
-                                value_for_master[len(rc2_speed):] = rc2_speed[len(rc2_speed):]
-                            elif key == 0x23:
-                                value_for_master[len(rc3_speed):] = rc3_speed[len(rc3_speed):]
-                            elif key == 0x24:
-                                value_for_master[len(rc4_speed):] = rc4_speed[len(rc4_speed):]
 
                             # EXT ports
                             elif key == 0x31:

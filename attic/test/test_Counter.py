@@ -1,11 +1,13 @@
 import sys
 sys.path.append('../lib')
+sys.path.append('../../lib')
+sys.path.append('../../test')
 
 import unittest
 
 from myhdl import Signal, Simulation, StopSimulation, intbv, join, toVHDL
 from Robot.Utils.Constants import LOW, HIGH
-from Robot.Utils.Counter import Counter
+from Attic.Utils.Counter import Counter
 from TestUtils import ClkGen
 
 def TestBench(CounterTester):
