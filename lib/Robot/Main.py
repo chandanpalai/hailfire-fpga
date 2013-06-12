@@ -67,25 +67,23 @@ def RobotIO(
     rst_n, rst_n_consign, rst_n_consign_prev = Signal(HIGH), Signal(HIGH), Signal(HIGH)
     @always(clk25.posedge)
     def DriveReset():
+        """ Drives reset signal """
         if rst_n_consign != rst_n_consign_prev:
             rst_n.next = LOW
             rst_n_consign_prev.next = rst_n_consign
         else:
             rst_n.next = HIGH
 
-    # Green LED should be off by default
+    # LEDs should be off by default
     led_green_consign = Signal(LOW)
-    @always_comb
-    def drive_led_green():
-        led_green_n.next = not led_green_consign
-
-    # Yellow LED should be off by default
     led_yellow_consign = Signal(LOW)
     @always_comb
-    def drive_led_yellow():
+    def DriveLEDs():
+        """ Drives green and yellow LEDs """
+        led_green_n.next = not led_green_consign
         led_yellow_n.next = not led_yellow_consign
 
-    # Toggle led every second
+    # Toggle red led every second
     Led1_inst = LEDDriver(led_red_n, clk25, rst_n)
 
     # !Odometers (rc1-4)

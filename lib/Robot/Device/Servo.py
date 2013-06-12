@@ -1,4 +1,4 @@
-from myhdl import Signal, always, always_comb, instances, intbv
+from myhdl import instance, instances, intbv
 from Robot.Utils.Constants import LOW, HIGH, CLK_FREQ
 
 def ServoDriver(pwm, clk25, consign, rst_n, optocoupled):
@@ -52,39 +52,39 @@ def ServoDriver(pwm, clk25, consign, rst_n, optocoupled):
     LOW_OPTO  = LOW if not optocoupled else HIGH
     HIGH_OPTO = HIGH if not optocoupled else LOW
 
-    # cnt overflows at 50Hz
     PWM_FREQ = 50
     CNT_MAX = int(CLK_FREQ/PWM_FREQ - 1)
-    cnt = Signal(intbv(0, min = 0, max = CNT_MAX + 1))
 
-    # 16-bit duty cycle
-    duty_cycle = Signal(intbv(0)[16:])
+    @instance
+    def DriveServo():
+        """ Generate PWM for servo """
 
-    @always(clk25.posedge, rst_n.negedge)
-    def drive_pwm():
-        """ Drive output signals """
-        if rst_n == LOW:
-            cnt.next = 0
-            duty_cycle.next = 0
-            pwm.next = LOW_OPTO
-        else:
-            # accept new consign at the beginning of a period
-            if cnt == 0:
-                duty_cycle.next = consign
-                if consign == 0:
-                    pwm.next = LOW_OPTO
-                else:
-                    pwm.next = HIGH_OPTO
+        # cnt overflows at 50Hz
+        cnt = intbv(0, min = 0, max = CNT_MAX + 1)
+
+        # 16-bit duty cycle
+        duty_cycle = intbv(0)[16:]
+
+        while True:
+            yield clk25.posedge, rst_n.negedge
+            if rst_n == LOW:
+                cnt[:] = 0
+                duty_cycle[:] = 0
+                pwm.next = LOW_OPTO
             else:
+                # accept new consign at the beginning of a period
+                if cnt == 0:
+                    duty_cycle[:] = consign
+
                 # reached consign?
                 if cnt >= duty_cycle:
                     pwm.next = LOW_OPTO
                 else:
                     pwm.next = HIGH_OPTO
 
-            if cnt == CNT_MAX:
-                cnt.next = 0
-            else:
-                cnt.next = cnt + 1
+                if cnt == CNT_MAX:
+                    cnt[:] = 0
+                else:
+                    cnt += 1
 
     return instances()

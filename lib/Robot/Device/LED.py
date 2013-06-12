@@ -1,4 +1,4 @@
-from myhdl import Signal, always, always_comb, instances, intbv
+from myhdl import instance, instances, intbv
 from Robot.Utils.Constants import LOW, CLK_FREQ
 
 def LEDDriver(led, clk, rst_n):
@@ -20,29 +20,28 @@ def LEDDriver(led, clk, rst_n):
 
     """
 
-    # cnt overflows at 1Hz
     TOGGLE_FREQ = 1
     CNT_MAX = int(CLK_FREQ/TOGGLE_FREQ - 1)
-    cnt = Signal(intbv(0, min = 0, max = CNT_MAX + 1))
 
-    led_internal = Signal(LOW)
+    @instance
+    def DriveLED():
+        """ Toggle LED every second """
 
-    @always(clk.posedge, rst_n.negedge)
-    def drive_led_internal():
-        """ Toggle led_inout signal every second """
-        if rst_n == LOW:
-            cnt.next = 0
-            led_internal.next = LOW
-        else:
-            if cnt == CNT_MAX:
-                cnt.next = 0
-                led_internal.next = not led_internal
+        # cnt overflows at 1Hz
+        cnt = intbv(0, min = 0, max = CNT_MAX + 1)
+        led_on = LOW
+
+        while True:
+            yield clk.posedge, rst_n.negedge
+            if rst_n == LOW:
+                cnt[:] = 0
+                led_on = LOW
             else:
-                cnt.next = cnt + 1
-
-    @always_comb
-    def drive_led():
-        """ Drive led output signal """
-        led.next = led_internal
+                if cnt == CNT_MAX:
+                    cnt[:] = 0
+                    led_on = not led_on
+                    led.next = led_on
+                else:
+                    cnt += 1
 
     return instances()

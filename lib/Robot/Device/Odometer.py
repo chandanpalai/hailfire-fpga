@@ -32,6 +32,8 @@ def OdometerReader(count, a, b, clk25, rst_n):
 
     @instance
     def KeepCount():
+        """ Keep count of quadrature encoder ticks """
+
         # previous values of both channels
         previous_a = a.val
         previous_b = b.val
